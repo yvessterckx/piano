@@ -34,7 +34,7 @@ Known limits, to handle in later phases:
 
 ### 2026-11-22: Proof of concept scope and future backend
 
-The proof of concept covers loading a piece, showing the notation, deriving the timeline and a piano view with highlighted keys. It does not store scores: files are loaded from the device and stay in the browser. A Symfony application that stores scores is planned for later; storing user files on a server is a separate decision with its own copyright implications.
+The proof of concept covers the full MVP scope in `CLAUDE.md`: loading a piece, the notation with a cursor, playback with tempo from 25% to 100%, the keyboard with highlighted keys, hand selection and a loop over a range of measures. It does not store scores: files are loaded from the device and stay in the browser. A Symfony application that stores scores is planned for later; storing user files on a server is a separate decision with its own copyright implications.
 
 ### 2026-11-22: Hosting on GitHub Pages
 
