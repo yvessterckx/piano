@@ -74,18 +74,41 @@ export interface TempoChange {
   readonly bpm: number;
 }
 
+/**
+ * A sustain pedal mark as written, once per pass in playback order. "down" while the pedal is
+ * already down is a pedal change (lift and press again).
+ */
+export interface PedalMark {
+  readonly beat: number;
+  readonly kind: 'down' | 'up';
+}
+
 /** Everything a score adapter delivers to build a timeline. */
 export interface TimelineInput {
   readonly notes: readonly NoteOccurrence[];
   readonly measures: readonly MeasureOccurrence[];
   readonly staves: readonly StaffInfo[];
   readonly tempo: readonly TempoChange[];
+  /** Sustain pedal marks of all staves together (a piano has one pedal), in any order. */
+  readonly pedal: readonly PedalMark[];
+}
+
+/** The sustain pedal is down from startBeat up to endBeat. Adjacent spans are a pedal change. */
+export interface PedalSpan {
+  readonly startBeat: number;
+  readonly endBeat: number;
 }
 
 /** A key to press: one struck note, with tied continuations merged into its duration. */
 export interface TimelineEvent {
   readonly startBeat: number;
+  /** How long the key is held, as written. */
   readonly durationBeats: number;
+  /**
+   * Where the note stops sounding: where the key is released, or later if the sustain pedal is
+   * down then (until the pedal is lifted or the same key is struck again).
+   */
+  readonly soundingEndBeat: number;
   readonly midi: number;
   /** Spelling of the struck note, e.g. B flat rather than A sharp. */
   readonly spelling: NoteSpelling;
@@ -104,5 +127,7 @@ export interface Timeline {
   readonly measures: readonly MeasureOccurrence[];
   /** Sorted by beat; the first change is at beat 0. */
   readonly tempo: readonly TempoChange[];
+  /** Where the sustain pedal is down: sorted, not overlapping. Empty for a piece without pedal marks. */
+  readonly pedal: readonly PedalSpan[];
   readonly durationBeats: number;
 }

@@ -1,5 +1,6 @@
-import { BEAT_EPSILON } from '../timeline/buildTimeline';
-import type { Hand, Timeline, TimelineEvent } from '../timeline/types';
+import { BEAT_EPSILON } from '../timeline/beats';
+import { firstEventFrom } from '../timeline/queries';
+import type { Hand, Timeline } from '../timeline/types';
 import { createTempoMap } from './tempoMap';
 import type { TempoMap } from './tempoMap';
 
@@ -58,6 +59,7 @@ export class Transport {
   readonly #tempo: TempoMap;
   readonly #listeners = new Set<() => void>();
   #tempoFactor = MAX_TEMPO_FACTOR;
+  #pedal = true;
   #loop: LoopRange | undefined;
   #playing = false;
   #pausedBeat = 0;
@@ -83,6 +85,21 @@ export class Transport {
 
   get loop(): LoopRange | undefined {
     return this.#loop;
+  }
+
+  /** Whether notes sound on while the sustain pedal is down (see TimelineEvent.soundingEndBeat). */
+  get pedal(): boolean {
+    return this.#pedal;
+  }
+
+  /**
+   * Plays the sustain pedal as written, or every note only as long as its key is held. Applies to
+   * the notes scheduled from now on; the ones already sounding keep their length.
+   */
+  setPedal(enabled: boolean): void {
+    if (enabled === this.#pedal) return;
+    this.#pedal = enabled;
+    this.#emit();
   }
 
   /** The written tempo at a beat, in quarter notes per minute (before the tempo factor). */
@@ -221,14 +238,18 @@ export class Transport {
     this.#player.stopAll();
   }
 
-  /** Hands the events starting in [fromBeat, untilBeat) to the player; notes end at segmentEnd at the latest. */
+  /**
+   * Hands the events starting in [fromBeat, untilBeat) to the player. A note lasts as long as it
+   * sounds (with the pedal, if played) and ends at segmentEnd at the latest.
+   */
   #schedule(fromBeat: number, untilBeat: number, anchor: Anchor, segmentEnd: number): void {
     const events = this.#timeline.events;
     for (let i = firstEventFrom(events, fromBeat - BEAT_EPSILON); i < events.length; i++) {
       const event = events[i];
       if (!event || event.startBeat >= untilBeat - BEAT_EPSILON) break;
       const time = this.#timeAt(event.startBeat, anchor);
-      const end = Math.min(event.startBeat + event.durationBeats, segmentEnd);
+      const released = event.startBeat + event.durationBeats;
+      const end = Math.min(this.#pedal ? event.soundingEndBeat : released, segmentEnd);
       this.#player.play({
         midi: event.midi,
         hand: event.hand,
@@ -272,16 +293,4 @@ export class Transport {
   #emit(): void {
     for (const listener of this.#listeners) listener();
   }
-}
-
-/** Index of the first event starting at or after a beat (events are sorted by start). */
-function firstEventFrom(events: readonly TimelineEvent[], beat: number): number {
-  let low = 0;
-  let high = events.length;
-  while (low < high) {
-    const middle = (low + high) >> 1;
-    if ((events[middle]?.startBeat ?? Infinity) < beat) low = middle + 1;
-    else high = middle;
-  }
-  return low;
 }

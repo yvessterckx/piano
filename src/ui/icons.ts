@@ -28,3 +28,8 @@ export const ICON_FULLSCREEN = icon(
   '<path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M15 4h4a1 1 0 0 1 1 1v4"/><path d="M20 15v4a1 1 0 0 1-1 1h-4"/><path d="M9 20H5a1 1 0 0 1-1-1v-4"/>',
 );
 export const ICON_CLOSE = icon('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>');
+
+/** Notes falling onto a keyboard. */
+export const ICON_FALLING_NOTES = icon(
+  '<path d="M6 3v7"/><path d="M12 6v6"/><path d="M18 3v4"/><path d="M3 16h18"/><path d="M3 21h18"/>',
+);

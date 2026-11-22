@@ -4,18 +4,23 @@ import type { NoteNaming } from '../keyboard/noteNames';
 import type { PianoSound } from '../playback/PianoSound';
 import { Transport } from '../playback/Transport';
 import type { NotePlayer } from '../playback/Transport';
+import { FallingNotes } from '../roll/FallingNotes';
+import { prepareRollPiece } from '../roll/rollScene';
+import type { HandDisplay } from '../roll/rollScene';
 import type { OsmdScore, ScoreLayoutMode } from '../score/osmd/OsmdScore';
 import { looksLikeMusicXml } from '../score/scoreFile';
 import {
   eventsSoundingAt,
   measurePositionAt,
   measuresInSpan,
+  pedalDownAt,
   spanBetweenMeasures,
 } from '../timeline/queries';
 import type { Hand, MeasureOccurrence, Timeline } from '../timeline/types';
 import { fetchDevFixture, listDevFixtures } from './devFixtures';
 import {
   ICON_CLOSE,
+  ICON_FALLING_NOTES,
   ICON_FULLSCREEN,
   ICON_LOOP,
   ICON_MENU,
@@ -30,12 +35,16 @@ import { anchorPopover } from './popovers';
 import type { PopoverSide } from './popovers';
 import {
   SCORE_SCALES,
+  loadFallingNotes,
   loadNoteNaming,
   loadRotateHintDismissed,
   loadScoreScale,
+  loadSustainPedal,
+  saveFallingNotes,
   saveNoteNaming,
   saveRotateHintDismissed,
   saveScoreScale,
+  saveSustainPedal,
 } from './preferences';
 import { ScreenWakeLock } from './wakeLock';
 
@@ -44,6 +53,11 @@ type HandChoice = Hand | 'both';
 /** Volume of the hand that is not practiced, unless it is muted. */
 const OTHER_HAND_LEVEL = 0.35;
 const DEFAULT_TEMPO_PERCENT = 60;
+/**
+ * Written time the falling notes show at once, in seconds at 100% tempo: one to two measures of
+ * most beginner pieces (see docs/research/06-falling-notes-view.md).
+ */
+const FALLING_NOTES_SECONDS = 4;
 
 const SILENT_PLAYER: NotePlayer = {
   play() {
@@ -77,6 +91,8 @@ const TEMPLATE = `
         aria-label="Tempo">${DEFAULT_TEMPO_PERCENT}%</button>
       <button type="button" class="tool" popovertarget="hands-panel" data-ref="hands-button"></button>
       <button type="button" class="tool" data-ref="loop" aria-pressed="false" aria-label="Loop" disabled>${ICON_LOOP}</button>
+      <button type="button" class="tool tool-roll" data-ref="roll-button" aria-pressed="false"
+        aria-label="Falling notes">${ICON_FALLING_NOTES}<span class="tool-roll-label">Falling notes</span></button>
     </div>
     <div class="stage">
       <section class="score-card" aria-label="Score">
@@ -94,6 +110,7 @@ const TEMPLATE = `
         </p>
       </div>
     </div>
+    <div class="roll" data-ref="roll" hidden></div>
     <section class="keyboard-area" aria-label="Keyboard" data-ref="keyboard"></section>
   </div>
   <input type="file" class="visually-hidden" id="file-input" data-ref="file" tabindex="-1" />
@@ -120,6 +137,12 @@ const TEMPLATE = `
         <button type="button" class="tool" data-ref="larger" aria-label="Larger score">+</button>
       </div>
     </div>
+    <label class="checkbox">
+      <input type="checkbox" data-ref="roll-switch" /> Falling notes
+    </label>
+    <label class="checkbox" data-ref="pedal-label" hidden>
+      <input type="checkbox" data-ref="pedal-switch" /> Sustain pedal (play and show)
+    </label>
     <button type="button" class="button" data-ref="fullscreen" hidden>${ICON_FULLSCREEN}<span>Full screen</span></button>
   </div>
 
@@ -172,11 +195,13 @@ export function mountPracticePage(root: HTMLElement): void {
     tempoButton: ref('tempo-button', HTMLButtonElement),
     handsButton: ref('hands-button', HTMLButtonElement),
     loop: ref('loop', HTMLButtonElement),
+    rollButton: ref('roll-button', HTMLButtonElement),
     score: ref('score', HTMLElement),
     empty: ref('empty', HTMLElement),
     status: ref('status', HTMLElement),
     rotateHint: ref('rotate-hint', HTMLElement),
     rotateHintClose: ref('rotate-hint-close', HTMLButtonElement),
+    roll: ref('roll', HTMLElement),
     keyboard: ref('keyboard', HTMLElement),
     file: ref('file', HTMLInputElement),
     menu: ref('menu', HTMLElement),
@@ -187,6 +212,9 @@ export function mountPracticePage(root: HTMLElement): void {
     smaller: ref('smaller', HTMLButtonElement),
     larger: ref('larger', HTMLButtonElement),
     scale: ref('scale', HTMLElement),
+    rollSwitch: ref('roll-switch', HTMLInputElement),
+    pedalLabel: ref('pedal-label', HTMLElement),
+    pedalSwitch: ref('pedal-switch', HTMLInputElement),
     fullscreen: ref('fullscreen', HTMLButtonElement),
     tempoPanel: ref('tempo-panel', HTMLElement),
     tempo: ref('tempo', HTMLInputElement),
@@ -205,7 +233,14 @@ export function mountPracticePage(root: HTMLElement): void {
   let naming: NoteNaming = loadNoteNaming();
   let scale = loadScoreScale();
   let layout: Layout = 'regular';
+  let fallingNotesOn = loadFallingNotes();
+  let sustainPedalOn = loadSustainPedal();
   const keyboard = new Keyboard(ui.keyboard, KEYBOARD_RANGES[88], naming);
+  const fallingNotes = new FallingNotes(ui.roll);
+  fallingNotes.setGeometry(keyboard.geometry);
+  keyboard.onGeometry((geometry) => {
+    fallingNotes.setGeometry(geometry);
+  });
   const wakeLock = new ScreenWakeLock();
   let score: OsmdScore | undefined;
   let audioContext: AudioContext | undefined;
@@ -277,8 +312,10 @@ export function mountPracticePage(root: HTMLElement): void {
       else renderPosition(piece.timeline, transport.position());
     });
     piece = { timeline, transport, sound };
+    fallingNotes.setPiece(prepareRollPiece(timeline));
     wakeLock.keepAwake(true);
     renderRotateHint();
+    renderFallingNotes();
     applyHandLevels();
     renderControls();
     renderPosition(timeline, transport.position());
@@ -306,7 +343,9 @@ export function mountPracticePage(root: HTMLElement): void {
     piece.sound?.dispose();
     piece = undefined;
     loopStart = undefined;
+    fallingNotes.setPiece(undefined);
     wakeLock.keepAwake(false);
+    renderFallingNotes();
     renderControls();
   }
 
@@ -333,6 +372,52 @@ export function mountPracticePage(root: HTMLElement): void {
       const bpm = piece.transport.writtenBpmAt(beat) * piece.transport.tempoFactor;
       ui.tempoBpm.textContent = `(${Math.round(bpm)} bpm)`;
     }
+    if (piece && fallingNotesShown()) {
+      fallingNotes.render({
+        position: beat,
+        loop: piece.transport.loop,
+        secondsVisible: FALLING_NOTES_SECONDS,
+        hands: { left: handDisplay('left'), right: handDisplay('right') },
+        naming,
+        pedal: sustainPedalOn,
+      });
+      keyboard.showPedal(pedalDownAt(timeline, beat));
+    }
+  }
+
+  function fallingNotesShown(): boolean {
+    return fallingNotesOn && piece !== undefined;
+  }
+
+  /** The practiced hand plays; the other one is drawn faintly, or not at all when muted. */
+  function handDisplay(hand: Hand): HandDisplay {
+    if (handChoice === 'both' || handChoice === hand) return 'play';
+    return ui.mute.checked ? 'hidden' : 'faint';
+  }
+
+  /**
+   * The falling notes and the sustain pedal switches. The view needs an open piece; the pedal
+   * switch is offered only for a piece with pedal marks. Off, the screen is as without the feature.
+   */
+  function renderFallingNotes(): void {
+    const shown = fallingNotesShown();
+    root.dataset.roll = shown ? 'on' : 'off';
+    ui.roll.hidden = !shown;
+    ui.rollButton.setAttribute('aria-pressed', String(fallingNotesOn));
+    ui.rollSwitch.checked = fallingNotesOn;
+    const hasPedal = (piece?.timeline.pedal.length ?? 0) > 0;
+    ui.pedalLabel.hidden = !hasPedal;
+    ui.pedalSwitch.checked = sustainPedalOn;
+    piece?.transport.setPedal(sustainPedalOn);
+    keyboard.setPedalKey(shown && hasPedal && sustainPedalOn);
+    if (!shown) keyboard.showPedal(false);
+    if (piece) renderPosition(piece.timeline, piece.transport.position());
+  }
+
+  function setFallingNotes(on: boolean): void {
+    fallingNotesOn = on;
+    saveFallingNotes(on);
+    renderFallingNotes();
   }
 
   function startAnimation(): void {
@@ -510,7 +595,21 @@ export function mountPracticePage(root: HTMLElement): void {
     applyHandLevels();
     if (piece) renderPosition(piece.timeline, piece.transport.position());
   });
-  ui.mute.addEventListener('change', applyHandLevels);
+  ui.mute.addEventListener('change', () => {
+    applyHandLevels();
+    if (piece) renderPosition(piece.timeline, piece.transport.position());
+  });
+  ui.rollButton.addEventListener('click', () => {
+    setFallingNotes(!fallingNotesOn);
+  });
+  ui.rollSwitch.addEventListener('change', () => {
+    setFallingNotes(ui.rollSwitch.checked);
+  });
+  ui.pedalSwitch.addEventListener('change', () => {
+    sustainPedalOn = ui.pedalSwitch.checked;
+    saveSustainPedal(sustainPedalOn);
+    renderFallingNotes();
+  });
   ui.loop.addEventListener('click', toggleLoop);
   ui.naming.addEventListener('click', (event) => {
     const choice = (event.target as Element).closest<HTMLElement>('[data-naming]')?.dataset.naming;
@@ -519,6 +618,7 @@ export function mountPracticePage(root: HTMLElement): void {
     saveNoteNaming(naming);
     keyboard.setNaming(naming);
     renderNaming();
+    if (piece) renderPosition(piece.timeline, piece.transport.position());
   });
   ui.smaller.addEventListener('click', () => {
     changeScale(-1);
@@ -557,6 +657,7 @@ export function mountPracticePage(root: HTMLElement): void {
   });
   renderNaming();
   renderScale();
+  renderFallingNotes();
   renderFullscreen();
   applyHandLevels();
   renderControls();

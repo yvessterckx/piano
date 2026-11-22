@@ -4,6 +4,26 @@ Update this file whenever a decision is made. Newest first within each section.
 
 ## Decisions
 
+### 2026-11-22: Falling notes and the sustain pedal
+
+Based on `research/06-falling-notes-view.md` and its design example. Built as designed there, with one switch to turn the feature off.
+
+- **Optional, off by default.** "Falling notes" is a switch in the bar (icon and word on tablets and laptops, the icon alone below 900 px wide and in the rail on a phone in landscape) and in the menu (the only place on a phone in portrait). The choice is remembered on the device. Switched off, the screen is exactly as without the feature.
+- **Placement:** between the score and the keyboard, flush with the keys, the score keeping 45% of the space (on a laptop about one system); on a phone in landscape instead of the line of music, which stays laid out while hidden.
+- **Time scale:** written time at 100% tempo, 4 seconds visible; a slower tempo makes the notes move slower without changing the picture. No setting for the look-ahead yet.
+- **Encoding:** a solid bar while the key is held, a thin tail while the sustain pedal holds the sound, a gap before every new strike of a key, a line joining the notes of a chord per hand, darker and narrower bars for black keys, measure lines with the score's numbers, faint lines on the beats and at every C and F. Note names on the bars where the keys are at least 18 px wide; on narrower keys the row of names above the keyboard moves onto the bottom of the roll. The hand not practiced is an outline, or hidden when muted. While looping, the start of the loop follows its end, marked "Loop: back to m. X".
+- **The pedal** shows as a strip to the right of the notes and a pedal key next to the keys, lit while the pedal is down, only for a piece with pedal marks.
+- **The sustain pedal in playback:** notes now sound until the pedal is lifted (or the key is struck again), as written. One menu switch, "Sustain pedal (play and show)", offered only for a piece with pedal marks and on by default, turns this off together with the tails and the strip. It also applies with the falling notes off.
+- **Reading pedal marks:** every mark counts and none is guessed (`timeline/pedal.ts`): "Ped." while the pedal is down is a change, a release without a pedal is ignored, a pedal still down at the end lifts there. A note released exactly at a lift or change is not held. Pedal instructions in words ("con pedale") and half pedaling are not read.
+- **Technology:** one canvas in a new layer `src/roll/`: `rollScene` computes the picture at a position as pure data (unit-tested), `FallingNotes` draws it on every animation frame. The key positions come from `keyboardGeometry` in `keyboard/keys.ts`, which the keyboard now uses too, so the notes fall exactly onto their keys.
+
+Known limits:
+
+- OSMD pairs pedal marks per staff and drops a release written under another staff than its "Ped." (it then lasts until the next mark). Reading the marks from the MusicXML ourselves would avoid this; not done, as such files seem rare.
+- A tempo change during playback restarts the scheduling and cuts sounding notes (see "Playback"); with the pedal, notes are longer, so this is more audible.
+- With the falling notes on a phone in landscape the score is hidden, so a loop cannot be chosen by tapping measures there; switch the falling notes off to choose one. Tapping or dragging the roll to move through the piece is not built.
+- Checked in Chrome (laptop and tablet widths) and in the iOS Simulator (iPhone, both orientations); not yet on a real device. Smoothness of the moving picture on a phone still to be judged at the piano.
+
 ### 2026-11-22: Practice screen layout on phones and tablets
 
 Based on `research/05-practice-screen-layout.md`. Practice happens on an iPhone and on an iPad, in portrait or in landscape, so both orientations must work. The music desk does not cover the bottom edge of the screen.
@@ -41,7 +61,7 @@ The cost: the picker lists all files, also on a laptop, and iOS first offers a m
 - **Hand selection:** the practiced hand plays at full volume and is shown on the keyboard; the other hand plays at 35% volume, or not at all with "Mute the other hand".
 - **Starting from a clicked measure** starts at its first occurrence in playback order. Moving outside an active loop ends the loop.
 - **The cursor and keyboard follow the sound:** both are drawn from the position at the audio time that is being heard (current time minus output latency).
-- **OSMD and smplr are loaded on demand:** the page itself is 20 kB of JavaScript.
+- **OSMD and smplr are loaded on demand:** the page itself is about 36 kB of JavaScript (13 kB gzip), falling notes included.
 
 ### 2026-11-22: 88 keys, note names do re mi by default
 

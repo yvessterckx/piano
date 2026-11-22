@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   eventsSoundingAt,
+  eventsSoundingIn,
   measurePositionAt,
   measuresInSpan,
+  pedalDownAt,
   spanBetweenMeasures,
 } from './queries';
 import type { Timeline } from './types';
@@ -17,6 +19,7 @@ const timeline: Timeline = {
     {
       startBeat: 0,
       durationBeats: 1,
+      soundingEndBeat: 1,
       midi: 67,
       spelling: { step: 'C', alter: 0 },
       hand: 'right',
@@ -27,6 +30,7 @@ const timeline: Timeline = {
     {
       startBeat: 1,
       durationBeats: 3,
+      soundingEndBeat: 4,
       midi: 48,
       spelling: { step: 'C', alter: 0 },
       hand: 'left',
@@ -37,6 +41,7 @@ const timeline: Timeline = {
     {
       startBeat: 1,
       durationBeats: 2,
+      soundingEndBeat: 3,
       midi: 72,
       spelling: { step: 'C', alter: 0 },
       hand: 'right',
@@ -46,6 +51,7 @@ const timeline: Timeline = {
     },
   ],
   tempo: [{ beat: 0, bpm: 90 }],
+  pedal: [],
   durationBeats: 7,
 };
 
@@ -106,6 +112,7 @@ describe('spanBetweenMeasures', () => {
     })),
     events: [],
     tempo: [],
+    pedal: [],
     durationBeats: 24,
   };
 
@@ -129,5 +136,45 @@ describe('spanBetweenMeasures', () => {
   it('lists the measures of the score within a span, each once', () => {
     expect(measuresInSpan(repeated, { startBeat: 4, endBeat: 20 })).toEqual([1, 2]);
     expect(measuresInSpan(repeated, { startBeat: 0, endBeat: 4 })).toEqual([0]);
+  });
+});
+
+describe('eventsSoundingIn', () => {
+  const held: Timeline = {
+    ...timeline,
+    events: timeline.events.map((event) =>
+      event.midi === 67 ? { ...event, soundingEndBeat: 3 } : event,
+    ),
+    pedal: [{ startBeat: 0, endBeat: 3 }],
+  };
+
+  it('finds the notes that sound in a span, counting the pedal', () => {
+    expect(eventsSoundingIn(held, { startBeat: 2, endBeat: 2.5 }).map((e) => e.midi)).toEqual([
+      67, 48, 72,
+    ]);
+    expect(eventsSoundingIn(timeline, { startBeat: 2, endBeat: 2.5 }).map((e) => e.midi)).toEqual([
+      48, 72,
+    ]);
+  });
+
+  it('leaves out notes struck at or after the end of the span', () => {
+    expect(eventsSoundingIn(held, { startBeat: 0, endBeat: 1 }).map((e) => e.midi)).toEqual([67]);
+  });
+
+  it('leaves out notes that stopped sounding at or before the start of the span', () => {
+    expect(eventsSoundingIn(held, { startBeat: 3, endBeat: 7 }).map((e) => e.midi)).toEqual([48]);
+  });
+});
+
+describe('pedalDownAt', () => {
+  const withPedal: Timeline = { ...timeline, pedal: [{ startBeat: 1, endBeat: 3 }] };
+
+  it('is down from the start of a span up to its end', () => {
+    expect([0.5, 1, 2.9, 3].map((beat) => pedalDownAt(withPedal, beat))).toEqual([
+      false,
+      true,
+      true,
+      false,
+    ]);
   });
 });

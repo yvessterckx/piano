@@ -1,4 +1,6 @@
+import { BEAT_EPSILON } from './beats';
 import { handForStaff } from './hands';
+import { pedalSpans, soundingEnds } from './pedal';
 import type {
   Hand,
   NoteRef,
@@ -9,12 +11,6 @@ import type {
   TimelineEvent,
   TimelineInput,
 } from './types';
-
-/**
- * Tolerance for comparing beats. Beats are fractions of a quarter note converted to floating
- * point (e.g. triplets), so values that are equal on paper can differ in the last bits.
- */
-export const BEAT_EPSILON = 1e-6;
 
 interface EventDraft {
   readonly startBeat: number;
@@ -29,7 +25,8 @@ interface EventDraft {
 
 /**
  * Builds the timeline from the note occurrences of a score adapter: merges tied notes into one
- * event and assigns a hand to every event.
+ * event, assigns a hand to every event, and works out how long each note sounds with the sustain
+ * pedal (see pedal.ts).
  *
  * Ties are merged per occurrence, in playback order. A note continues a tie only if a note of the
  * same pitch on the same staff with an open tie ends exactly where it starts. That is what makes
@@ -67,17 +64,23 @@ export function buildTimeline(input: TimelineInput): Timeline {
     if (note.tieStart) openTies.set(key, draft);
   }
 
-  const events: TimelineEvent[] = drafts
-    .map(({ endBeat, ...rest }) => ({ ...rest, durationBeats: endBeat - rest.startBeat }))
-    .sort((a, b) => a.startBeat - b.startBeat || a.midi - b.midi);
-
   const lastMeasure = input.measures.at(-1);
   const durationBeats = lastMeasure ? lastMeasure.startBeat + lastMeasure.durationBeats : 0;
+
+  const pedal = pedalSpans(input.pedal, durationBeats);
+  const presses = drafts.sort((a, b) => a.startBeat - b.startBeat || a.midi - b.midi);
+  const soundingEnd = soundingEnds(presses, pedal);
+  const events: TimelineEvent[] = presses.map(({ endBeat, ...rest }, i) => ({
+    ...rest,
+    durationBeats: endBeat - rest.startBeat,
+    soundingEndBeat: soundingEnd[i] ?? endBeat,
+  }));
 
   return {
     events,
     measures: input.measures,
     tempo: [...input.tempo].sort((a, b) => a.beat - b.beat),
+    pedal,
     durationBeats,
   };
 }

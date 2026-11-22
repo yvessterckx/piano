@@ -107,6 +107,39 @@ describe('handmade scores (exact results)', () => {
     expect(timeline.tempo).toEqual([{ beat: 0, bpm: 90 }]);
     expect(timeline.durationBeats).toBe(7);
   });
+
+  it('reads the sustain pedal on every pass, as a pianist reads the marks', async () => {
+    const timeline = await timelineOf('handmade-pedal.musicxml');
+
+    expect(labels(timeline)).toEqual(['1', '2', '3', '4', '5', '4', '5', '6']);
+    expect(timeline.pedal.map((span) => [span.startBeat, span.endBeat])).toEqual([
+      [0, 2], // bracket line: down, then a change
+      [2, 3],
+      [4, 6], // "Ped.", then "Ped." again without "*": a change
+      [6, 9], // "*" in measure 3; its stray second "*" changes nothing
+      [12, 19], // repeated measures 4 and 5: down and up on each pass
+      [20, 27],
+      [28, 32], // down in the last measure (whole rests): up at the end
+    ]);
+    expect(
+      timeline.events
+        .filter((e) => e.hand === 'right')
+        .map((e) => [e.startBeat, e.midi, e.durationBeats, e.soundingEndBeat]),
+    ).toEqual([
+      [0, 72, 1, 1], // struck again under the pedal
+      [1, 72, 1, 2], // released at the change: not held
+      [2, 76, 1, 3], // released where the pedal goes up
+      [3, 79, 1, 4],
+      [4, 74, 1, 6],
+      [5, 77, 1, 6],
+      [6, 81, 2, 9],
+      [8, 76, 4, 12],
+      [12, 77, 4, 19],
+      [16, 79, 4, 20], // released where the pedal goes down again: not held
+      [20, 77, 4, 27],
+      [24, 79, 4, 28],
+    ]);
+  });
 });
 
 describe('public-domain scores', () => {

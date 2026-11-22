@@ -45,6 +45,7 @@ Done on 2026-11-22, tested on a laptop in Chrome. See `docs/decisions.md` ("Play
 - Color the sounding notes in the score per hand (the design shows this; the timeline already carries the note references).
 - Keep sounding notes when the tempo changes during playback (now every change restarts the scheduling and cuts them).
 - Done on 2026-11-22: practice screen layout for phones and tablets, as decided in `docs/decisions.md` (research: `research/05-practice-screen-layout.md`): one screen without page scroll, a control bar, the score per orientation, 88 keys fitted to the width, loops by tapping measures, screen wake lock and fullscreen. Checked in the iOS Simulator (iPhone, both orientations) and in Chrome at tablet and laptop sizes; not yet on a real device or on Android.
+- Done on 2026-11-22: falling notes above the keyboard (optional, off by default) and the sustain pedal, read from the score, played and shown; see `docs/decisions.md` ("Falling notes and the sustain pedal"), research in `research/06-falling-notes-view.md`. Later: a setting for how far ahead the notes are shown, tapping the falling notes to move through the piece.
 - Settings: number of keys, note names (do re mi or C D E). Persisted in `localStorage` (reads and writes wrapped in try/catch).
 - Loading state for samples and score, clear error messages for an unreadable file. A file that is not MusicXML at all is already turned down with a message.
 - Self-host the samples for offline use, possibly as a PWA.
@@ -52,4 +53,4 @@ Done on 2026-11-22, tested on a laptop in Chrome. See `docs/decisions.md` ("Play
 ## Phase 4: extras (each a separate decision)
 
 - MIDI input with wait mode (not possible on iPad in the browser, see `research/04-midi-and-transcription.md`).
-- Loading MIDI files with `@tonejs/midi`. MIDI contains no notation: in that case show only the keyboard (e.g. falling notes) instead of a generated score.
+- Loading MIDI files with `@tonejs/midi`. MIDI contains no notation: in that case show only the keyboard and the falling notes instead of a generated score.

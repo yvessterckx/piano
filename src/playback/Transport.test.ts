@@ -8,6 +8,7 @@ function scale(beats: number, bpm = 60): Timeline {
   const events: TimelineEvent[] = Array.from({ length: beats }, (_, beat) => ({
     startBeat: beat,
     durationBeats: 1,
+    soundingEndBeat: beat + 1,
     midi: 60 + beat,
     spelling: { step: 'C', alter: 0 },
     hand: beat % 2 === 0 ? 'right' : 'left',
@@ -22,7 +23,7 @@ function scale(beats: number, bpm = 60): Timeline {
     startBeat: index * 4,
     durationBeats: 4,
   }));
-  return { events, measures, tempo: [{ beat: 0, bpm }], durationBeats: beats };
+  return { events, measures, tempo: [{ beat: 0, bpm }], pedal: [], durationBeats: beats };
 }
 
 class FakePlayer implements NotePlayer {
@@ -93,6 +94,26 @@ describe('Transport', () => {
     expect(transport.positionAt(clock.currentTime - 0.5)).toBeCloseTo(2, 6);
   });
 
+  it('lets notes sound on with the pedal, and only as long as held without it', () => {
+    const timeline = scale(8);
+    const pedaled: Timeline = {
+      ...timeline,
+      events: timeline.events.map((event) => ({ ...event, soundingEndBeat: 4 })),
+      pedal: [{ startBeat: 0, endBeat: 4 }],
+    };
+    const transport = new Transport(pedaled, clock, player);
+    transport.play();
+    advance(transport, 1.5);
+    transport.setPedal(false);
+    advance(transport, 1);
+
+    expect(player.played.map((note) => [note.midi, Number(note.duration.toFixed(9))])).toEqual([
+      [60, 4],
+      [61, 3],
+      [62, 1],
+    ]);
+  });
+
   it('plays slower with a lower tempo factor', () => {
     const transport = new Transport(scale(8), clock, player);
     transport.setTempoFactor(0.5);
@@ -159,7 +180,7 @@ describe('Transport', () => {
 
   it('cuts a note that would sound past the end of the loop', () => {
     const timeline = scale(8);
-    const long = { ...timeline.events[4], durationBeats: 3 } as TimelineEvent;
+    const long = { ...timeline.events[4], durationBeats: 3, soundingEndBeat: 7 } as TimelineEvent;
     const transport = new Transport(
       { ...timeline, events: timeline.events.map((e, i) => (i === 4 ? long : e)) },
       clock,

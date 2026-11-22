@@ -45,6 +45,7 @@ function input(notes: NoteOccurrence[], fields: Partial<TimelineInput> = {}): Ti
     measures: measures(4, 4),
     staves: PIANO,
     tempo: [{ beat: 0, bpm: 120 }],
+    pedal: [],
     ...fields,
   };
 }
@@ -181,6 +182,45 @@ describe('buildTimeline', () => {
       [0, 64, 'right'],
       [1, 72, 'right'],
     ]);
+  });
+
+  it('sounds a note on with the pedal after its ties are merged', () => {
+    const timeline = buildTimeline(
+      input(
+        [
+          note({ startBeat: 0, durationBeats: 2, midi: 60, tieStart: true }),
+          note({ startBeat: 2, durationBeats: 1, midi: 60, tieStop: true }),
+          note({ startBeat: 0, durationBeats: 1, midi: 48, staff: LEFT }),
+          note({ startBeat: 5, durationBeats: 1, midi: 48, staff: LEFT }),
+        ],
+        {
+          pedal: [
+            { beat: 0, kind: 'down' },
+            { beat: 4, kind: 'up' },
+            { beat: 4.5, kind: 'down' },
+          ],
+        },
+      ),
+    );
+
+    expect(timeline.pedal).toEqual([
+      { startBeat: 0, endBeat: 4 },
+      { startBeat: 4.5, endBeat: 8 },
+    ]);
+    expect(
+      timeline.events.map((e) => [e.startBeat, e.midi, e.durationBeats, e.soundingEndBeat]),
+    ).toEqual([
+      [0, 48, 1, 4],
+      [0, 60, 3, 4],
+      [5, 48, 1, 8],
+    ]);
+  });
+
+  it('sounds every note as long as it is held without pedal marks', () => {
+    const timeline = buildTimeline(input([note({ startBeat: 0, durationBeats: 1, midi: 60 })]));
+
+    expect(timeline.pedal).toEqual([]);
+    expect(timeline.events[0]?.soundingEndBeat).toBe(1);
   });
 
   it('takes the total duration from the last measure', () => {

@@ -12,6 +12,13 @@
   --color-left-hand: #d9730d;
   --color-right-hand: #1f6feb;
   --color-right-hand-light: #4d8df5;
+  /* Falling notes: notes on black keys are darker, as the keys are; the glow lights the hit line.
+     The dark shades keep 3:1 contrast on the roll's background. */
+  --color-left-hand-dark: #a65a0b;
+  --color-right-hand-dark: #1a5fd6;
+  --color-left-hand-glow: #f0a35e;
+  --color-right-hand-glow: #7fb0ff;
+  --color-roll: #0c0f13;
   --color-cursor: #e6ecf5;
   --color-loop: #dde8fb;
   --color-key-white: #fff;
@@ -122,6 +129,82 @@ body {
   min-width: 0;
 }
 
+/* Falling notes (src/roll/): between the score and the keyboard, flush with the keys so the notes
+   run into them. On a phone in landscape they take the place of the line of music, which stays
+   laid out (hidden) so nothing has to be drawn again when they are switched off. */
+.roll {
+  grid-area: roll;
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--color-roll);
+}
+
+.roll[hidden] {
+  display: none;
+}
+
+.roll-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+[data-roll='on'] .practice {
+  grid-template:
+    'toolbar' auto
+    'stage' minmax(0, 9fr)
+    'roll' minmax(150px, 11fr)
+    'keyboard' auto
+    / minmax(0, 1fr);
+  row-gap: 0;
+}
+
+[data-roll='on'] .toolbar,
+[data-roll='on'] .stage {
+  margin-bottom: 8px;
+}
+
+[data-layout='phone-landscape'][data-roll='on'] .practice {
+  grid-template:
+    'stage toolbar' minmax(0, 1fr)
+    'keyboard toolbar' auto
+    / minmax(0, 1fr) auto;
+}
+
+[data-layout='phone-landscape'][data-roll='on'] .toolbar,
+[data-layout='phone-landscape'][data-roll='on'] .stage {
+  margin-bottom: 0;
+}
+
+[data-layout='phone-landscape'][data-roll='on'] .roll {
+  grid-area: stage;
+}
+
+/* Above the roll, so its notices stay visible; the score itself is hidden. */
+[data-layout='phone-landscape'][data-roll='on'] .stage {
+  z-index: 1;
+}
+
+[data-layout='phone-landscape'][data-roll='on'] .score-card {
+  visibility: hidden;
+}
+
+/* Names of the pressed keys on narrow keys: over the bottom of the roll, just above the keys. */
+[data-roll='on'] .keyboard-area {
+  position: relative;
+}
+
+[data-roll='on'] .keyboard-compact .keyboard-names {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  margin-bottom: 6px;
+}
+
 /* Control bar */
 
 .tool {
@@ -229,6 +312,40 @@ body {
 
 [data-layout='phone-landscape'] .tool-text {
   padding: 0;
+}
+
+/* The falling notes switch: icon and word where there is room, in the menu on a phone upright. */
+.tool-roll {
+  gap: 8px;
+}
+
+[data-layout='regular'] .tool-roll {
+  width: auto;
+  padding: 0 14px 0 12px;
+  font-size: 14px;
+}
+
+.tool-roll-label {
+  display: none;
+}
+
+[data-layout='regular'] .tool-roll-label {
+  display: inline;
+}
+
+[data-layout='phone-portrait'] .tool-roll {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  [data-layout='regular'] .tool-roll {
+    width: var(--control-height);
+    padding: 0;
+  }
+
+  [data-layout='regular'] .tool-roll-label {
+    display: none;
+  }
 }
 
 .hands-icon {
@@ -593,7 +710,6 @@ body {
 }
 
 .keyboard {
-  --key-width: calc(100% / var(--white-keys));
   position: relative;
   width: 100%;
   height: var(--keyboard-height);
@@ -612,9 +728,8 @@ body {
   line-height: 1;
 }
 
+/* Left edges and widths are set in pixels by src/keyboard/Keyboard.ts (keyboardGeometry). */
 .key-white {
-  left: calc(var(--index) * var(--key-width));
-  width: calc(var(--key-width) - 1px);
   height: 100%;
   padding-bottom: 9px;
   border-radius: 0 0 3px 3px;
@@ -625,8 +740,6 @@ body {
 
 .key-black {
   z-index: 1;
-  left: calc((var(--index) + 1) * var(--key-width) - var(--key-width) * 0.32);
-  width: calc(var(--key-width) * 0.64);
   height: 62%;
   padding-bottom: 6px;
   border-radius: 0 0 2px 2px;
@@ -663,4 +776,38 @@ body {
 .key-label {
   white-space: nowrap;
   pointer-events: none;
+}
+
+/* The sustain pedal key, at the right of the keys while a piece with pedal marks is shown with
+   falling notes. Lit while the pedal is down. */
+.key-pedal {
+  position: absolute;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 0 0 4px 4px;
+  background: var(--color-panel);
+  color: var(--color-text-muted);
+  font: 700 10px var(--font-body);
+  letter-spacing: 0.04em;
+  writing-mode: vertical-rl;
+  overflow: hidden;
+}
+
+.key-pedal[hidden] {
+  display: none;
+}
+
+.key-pedal-down {
+  border-color: var(--color-text);
+  background: var(--color-text);
+  color: var(--color-background);
+}
+
+/* Too narrow for the word. */
+.keyboard-compact .key-pedal {
+  font-size: 0;
 }

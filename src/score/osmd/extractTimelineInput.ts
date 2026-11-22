@@ -1,12 +1,20 @@
 import { MusicPartManagerIterator, NoteEnum, TieTypes } from 'opensheetmusicdisplay';
-import type { Fraction, MusicSheet, Note, PlacementEnum, Pitch } from 'opensheetmusicdisplay';
-import { BEAT_EPSILON } from '../../timeline/buildTimeline';
+import type {
+  Fraction,
+  MusicSheet,
+  Note,
+  Pedal,
+  PlacementEnum,
+  Pitch,
+} from 'opensheetmusicdisplay';
+import { BEAT_EPSILON } from '../../timeline/beats';
 import type {
   MeasureOccurrence,
   NoteOccurrence,
   NoteRef,
   NoteSpelling,
   NoteStep,
+  PedalMark,
   StaffInfo,
   StaffRef,
   TempoChange,
@@ -32,7 +40,7 @@ export interface ExtractedScore {
 }
 
 /**
- * Reads the notes of a loaded OSMD sheet in playback order.
+ * Reads the notes and sustain pedal marks of a loaded OSMD sheet in playback order.
  *
  * OSMD's MusicPartManagerIterator unrolls repeats, endings and D.C./D.S. jumps, and gives the
  * position both in the unrolled piece (enrolled timestamp) and in the score (measure index).
@@ -63,6 +71,7 @@ export function extractTimelineInput(sheet: MusicSheet): ExtractedScore {
   const notes: NoteOccurrence[] = [];
   const measures: MeasureOccurrence[] = [];
   const tempo: TempoChange[] = [];
+  const pedal: PedalMark[] = [];
   let openMeasure: Omit<MeasureOccurrence, 'durationBeats'> | undefined;
 
   const closeMeasure = (endBeat: number): void => {
@@ -92,6 +101,7 @@ export function extractTimelineInput(sheet: MusicSheet): ExtractedScore {
         label: measureLabel(sheet, sourceIndex),
         startBeat: measureStart,
       };
+      pedal.push(...pedalMarksOf(sheet, sourceIndex, measureStart));
     }
 
     const bpm = iterator.CurrentBpm;
@@ -121,7 +131,7 @@ export function extractTimelineInput(sheet: MusicSheet): ExtractedScore {
 
   closeMeasure(lastMeasureEnd(sheet, openMeasure, notes));
 
-  return { input: { notes, measures, staves, tempo }, notesByRef };
+  return { input: { notes, measures, staves, tempo, pedal }, notesByRef };
 }
 
 const STEPS: Record<NoteEnum, NoteStep> = {
@@ -151,6 +161,28 @@ function toBeats(fraction: Fraction): number {
 function measureLabel(sheet: MusicSheet, sourceIndex: number): string {
   const numberInFile = sheet.SourceMeasures[sourceIndex]?.MeasureNumberXML;
   return numberInFile === undefined ? '' : String(numberInFile);
+}
+
+/**
+ * The sustain pedal marks of a measure, at their beats in this pass, from every staff (a piano has
+ * one pedal, usually written under the bass staff). OSMD pairs the marks itself, but leaves a
+ * "Ped." that is followed by another "Ped." open for good; so only the marks are read here and the
+ * timeline pairs them (see timeline/pedal.ts). A pedal change has both an end and a start.
+ */
+function pedalMarksOf(sheet: MusicSheet, sourceIndex: number, measureStart: number): PedalMark[] {
+  const marks: PedalMark[] = [];
+  for (const expressions of sheet.SourceMeasures[sourceIndex]?.StaffLinkedExpressions ?? []) {
+    for (const expression of expressions) {
+      const beat = measureStart + toBeats(expression.Timestamp);
+      // OSMD types these fields without undefined, but leaves them undefined when there is no mark.
+      if ((expression.PedalEnd as Pedal | undefined) !== undefined)
+        marks.push({ beat, kind: 'up' });
+      if ((expression.PedalStart as Pedal | undefined) !== undefined) {
+        marks.push({ beat, kind: 'down' });
+      }
+    }
+  }
+  return marks;
 }
 
 /**

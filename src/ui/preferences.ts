@@ -7,6 +7,8 @@ import type { NoteNaming } from '../keyboard/noteNames';
 const NAMING_KEY = 'piano.noteNaming';
 const SCORE_SCALE_KEY = 'piano.scoreScale';
 const ROTATE_HINT_KEY = 'piano.rotateHintDismissed';
+const FALLING_NOTES_KEY = 'piano.fallingNotes';
+const SUSTAIN_PEDAL_KEY = 'piano.sustainPedal';
 
 /** The sizes the score can be shown at; 1 is print size (a 40 px staff). */
 export const SCORE_SCALES = [0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6] as const;
@@ -35,6 +37,24 @@ export function loadRotateHintDismissed(): boolean {
 
 export function saveRotateHintDismissed(): void {
   write(ROTATE_HINT_KEY, 'true');
+}
+
+/** Falling notes above the keyboard: off unless the learner switches them on. */
+export function loadFallingNotes(): boolean {
+  return read(FALLING_NOTES_KEY) === 'on';
+}
+
+export function saveFallingNotes(on: boolean): void {
+  write(FALLING_NOTES_KEY, on ? 'on' : 'off');
+}
+
+/** Playing and showing the sustain pedal as written: on unless the learner switches it off. */
+export function loadSustainPedal(): boolean {
+  return read(SUSTAIN_PEDAL_KEY) !== 'off';
+}
+
+export function saveSustainPedal(on: boolean): void {
+  write(SUSTAIN_PEDAL_KEY, on ? 'on' : 'off');
 }
 
 function read(key: string): string | null {

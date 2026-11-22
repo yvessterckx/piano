@@ -1,4 +1,4 @@
-import { BEAT_EPSILON } from './buildTimeline';
+import { BEAT_EPSILON } from './beats';
 import type { MeasureOccurrence, Timeline, TimelineEvent } from './types';
 
 /** A position in the piece expressed as a measure occurrence and a beat within that measure. */
@@ -35,21 +35,85 @@ export function measurePositionAt(timeline: Timeline, beat: number): MeasurePosi
 }
 
 /**
- * The events sounding at a beat: started at or before it and not yet ended.
- * Linear in the number of events; fine for a spike, to be indexed when playback needs it per frame.
+ * The events whose key is held at a beat: started at or before it and not yet released.
+ * Called on every animation frame: only the events that can still be held are looked at.
  */
 export function eventsSoundingAt(timeline: Timeline, beat: number): TimelineEvent[] {
-  return timeline.events.filter(
-    (event) =>
-      event.startBeat <= beat + BEAT_EPSILON &&
-      beat < event.startBeat + event.durationBeats - BEAT_EPSILON,
-  );
+  const { events } = timeline;
+  const found: TimelineEvent[] = [];
+  const from = firstEventFrom(events, beat - longestDurations(timeline).held - BEAT_EPSILON);
+  for (let i = from; i < events.length; i++) {
+    const event = events[i];
+    if (!event || event.startBeat > beat + BEAT_EPSILON) break;
+    if (beat < event.startBeat + event.durationBeats - BEAT_EPSILON) found.push(event);
+  }
+  return found;
 }
 
 /** A span of the piece in beats: from startBeat up to (not including) endBeat. */
 export interface BeatSpan {
   readonly startBeat: number;
   readonly endBeat: number;
+}
+
+/**
+ * The events that sound at some moment of a span, counting the sustain pedal: struck before its
+ * end and still sounding after its start. Sorted like the timeline's events.
+ */
+export function eventsSoundingIn(timeline: Timeline, span: BeatSpan): TimelineEvent[] {
+  const { events } = timeline;
+  const found: TimelineEvent[] = [];
+  const lookBack = longestDurations(timeline).sounding;
+  for (let i = firstEventFrom(events, span.startBeat - lookBack - BEAT_EPSILON); ; i++) {
+    const event = events[i];
+    if (!event || event.startBeat >= span.endBeat - BEAT_EPSILON) break;
+    if (event.soundingEndBeat > span.startBeat + BEAT_EPSILON) found.push(event);
+  }
+  return found;
+}
+
+/** Whether the sustain pedal is down at a beat. */
+export function pedalDownAt(timeline: Timeline, beat: number): boolean {
+  return timeline.pedal.some(
+    (span) => span.startBeat <= beat + BEAT_EPSILON && beat < span.endBeat - BEAT_EPSILON,
+  );
+}
+
+/** Index of the first event starting at or after a beat (events are sorted by start). */
+export function firstEventFrom(events: readonly TimelineEvent[], beat: number): number {
+  let low = 0;
+  let high = events.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if ((events[middle]?.startBeat ?? Infinity) < beat) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
+interface LongestDurations {
+  /** The longest key press, in beats. */
+  readonly held: number;
+  /** The longest time a note sounds, with the pedal, in beats. */
+  readonly sounding: number;
+}
+
+const longestDurationsCache = new WeakMap<Timeline, LongestDurations>();
+
+/** How far back an event can start and still matter now. Computed once per timeline. */
+function longestDurations(timeline: Timeline): LongestDurations {
+  let longest = longestDurationsCache.get(timeline);
+  if (!longest) {
+    let held = 0;
+    let sounding = 0;
+    for (const event of timeline.events) {
+      held = Math.max(held, event.durationBeats);
+      sounding = Math.max(sounding, event.soundingEndBeat - event.startBeat);
+    }
+    longest = { held, sounding };
+    longestDurationsCache.set(timeline, longest);
+  }
+  return longest;
 }
 
 /**

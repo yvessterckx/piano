@@ -19,13 +19,14 @@ The four files below come from the test data of the OpenSheetMusicDisplay reposi
 
 Small scores written by hand to test one behavior each with exactly known results. Released under CC0 1.0.
 
-| File                                  | Tests                                                                                                                                                                         |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `handmade-tied-chords.musicxml`       | Ties across a beat and across a barline, chords in both hands, a chord with one tied and one newly struck note, a note struck again where a tied note of the same pitch ends. |
-| `handmade-repeat-voltas.musicxml`     | Forward and backward repeat, first and second ending, a note tied into both endings.                                                                                          |
-| `handmade-pickup-two-parts.musicxml`  | Pickup measure (measure 0), one single-staff part per hand, a tempo marking.                                                                                                  |
-| `handmade-da-capo-al-fine.musicxml`   | D.C. al Fine: back to the start after the last measure, stop at Fine.                                                                                                         |
-| `handmade-dal-segno-al-coda.musicxml` | D.S. al Coda: back to the segno, then from To Coda to the coda.                                                                                                               |
+| File                                  | Tests                                                                                                                                                                                                                                                     |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `handmade-tied-chords.musicxml`       | Ties across a beat and across a barline, chords in both hands, a chord with one tied and one newly struck note, a note struck again where a tied note of the same pitch ends.                                                                             |
+| `handmade-repeat-voltas.musicxml`     | Forward and backward repeat, first and second ending, a note tied into both endings.                                                                                                                                                                      |
+| `handmade-pickup-two-parts.musicxml`  | Pickup measure (measure 0), one single-staff part per hand, a tempo marking.                                                                                                                                                                              |
+| `handmade-da-capo-al-fine.musicxml`   | D.C. al Fine: back to the start after the last measure, stop at Fine.                                                                                                                                                                                     |
+| `handmade-dal-segno-al-coda.musicxml` | D.S. al Coda: back to the segno, then from To Coda to the coda.                                                                                                                                                                                           |
+| `handmade-pedal.musicxml`             | Sustain pedal marks: a bracket line with a change, "Ped." again without `*`, a stray `*`, a pedal down and up inside a repeat, a note struck again under the pedal, marks under both staves, a pedal still down at the end (in a measure of whole rests). |
 
 ## What each real score covers
 

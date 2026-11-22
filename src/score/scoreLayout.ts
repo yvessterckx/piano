@@ -1,4 +1,4 @@
-import { BEAT_EPSILON } from '../timeline/buildTimeline';
+import { BEAT_EPSILON } from '../timeline/beats';
 
 /** A note column of a measure: the cursor stands here while that beat sounds. */
 export interface CursorColumn {

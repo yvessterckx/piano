@@ -1,6 +1,6 @@
 import type { Hand, NoteSpelling } from '../timeline/types';
-import { keysInRange } from './keys';
-import type { KeyboardRange } from './keys';
+import { MIN_LABELED_KEY_PX, keyboardGeometry, keysInRange } from './keys';
+import type { KeyboardGeometry, KeyboardRange } from './keys';
 import { spreadLabels } from './nameLabels';
 import { keyName, spelledName } from './noteNames';
 import type { NoteNaming } from './noteNames';
@@ -17,8 +17,6 @@ interface KeyElements {
   readonly label: HTMLElement;
 }
 
-/** Narrower white keys than this cannot hold a note name: the names go in a row above them. */
-const MIN_LABELED_KEY_PX = 18;
 const NAME_GAP_PX = 3;
 const MIDDLE_C = 60;
 
@@ -28,47 +26,81 @@ const MIDDLE_C = 60;
  * carries its note name, and every C its name for orientation; when the keys are too narrow for
  * that (a phone), the names of the lit keys appear in a row above them instead. Middle C is
  * marked either way.
+ *
+ * The keys are placed in pixels from keyboardGeometry, which the falling notes use too; listeners
+ * of onGeometry hear about every change (resize, pedal key shown or hidden).
  */
 export class Keyboard {
   readonly #container: HTMLElement;
   readonly #board: HTMLElement;
   readonly #names: HTMLElement;
-  readonly #whiteKeys: number;
+  readonly #pedalKey: HTMLElement;
+  readonly #range: KeyboardRange;
   readonly #keys = new Map<number, KeyElements>();
+  readonly #geometryListeners = new Set<(geometry: KeyboardGeometry) => void>();
   #naming: NoteNaming;
   #active = new Map<number, ActiveKey>();
   #compact = false;
+  #withPedal = false;
+  #geometry: KeyboardGeometry;
 
   constructor(container: HTMLElement, range: KeyboardRange, naming: NoteNaming) {
     this.#container = container;
+    this.#range = range;
     this.#naming = naming;
-    const keys = keysInRange(range);
-    this.#whiteKeys = keys.filter((key) => !key.black).length;
+    this.#geometry = keyboardGeometry(range, 0, false);
 
     this.#names = document.createElement('div');
     this.#names.className = 'keyboard-names';
     this.#names.setAttribute('aria-hidden', 'true');
     this.#board = document.createElement('div');
     this.#board.className = 'keyboard';
-    this.#board.style.setProperty('--white-keys', String(this.#whiteKeys));
 
-    for (const { midi, black, whiteIndex } of keys) {
+    for (const { midi, black } of keysInRange(range)) {
       const key = document.createElement('div');
       key.className = black ? 'key key-black' : 'key key-white';
       if (midi === MIDDLE_C) key.classList.add('key-middle-c');
-      key.style.setProperty('--index', String(whiteIndex));
       const label = document.createElement('span');
       label.className = 'key-label';
       key.append(label);
       this.#board.append(key);
       this.#keys.set(midi, { key, label });
     }
+    this.#pedalKey = document.createElement('div');
+    this.#pedalKey.className = 'key-pedal';
+    this.#pedalKey.textContent = 'Pedal';
+    this.#pedalKey.hidden = true;
+    this.#board.append(this.#pedalKey);
     container.replaceChildren(this.#names, this.#board);
     for (const midi of this.#keys.keys()) this.#renderKey(midi);
 
     new ResizeObserver(() => {
       this.#fitToWidth();
     }).observe(this.#board);
+  }
+
+  /** Where the keys are drawn now, in pixels from the left edge of the keyboard. */
+  get geometry(): KeyboardGeometry {
+    return this.#geometry;
+  }
+
+  /** Calls the listener whenever the keys move: on resize and when the pedal key comes or goes. */
+  onGeometry(listener: (geometry: KeyboardGeometry) => void): () => void {
+    this.#geometryListeners.add(listener);
+    return () => this.#geometryListeners.delete(listener);
+  }
+
+  /** Shows or hides the sustain pedal key at the right; the keys narrow to make room for it. */
+  setPedalKey(shown: boolean): void {
+    if (shown === this.#withPedal) return;
+    this.#withPedal = shown;
+    this.#pedalKey.hidden = !shown;
+    this.#fitToWidth();
+  }
+
+  /** Lights the pedal key while the sustain pedal is down. */
+  showPedal(down: boolean): void {
+    this.#pedalKey.classList.toggle('key-pedal-down', down);
   }
 
   setNaming(naming: NoteNaming): void {
@@ -93,9 +125,23 @@ export class Keyboard {
     if (changed.size > 0) this.#renderNames();
   }
 
-  /** Switches between names on the keys and names above them, by the width of a key. */
+  /** Places the keys for the current width, with names on or above them by the width of a key. */
   #fitToWidth(): void {
-    const compact = this.#board.clientWidth / this.#whiteKeys < MIN_LABELED_KEY_PX;
+    const geometry = keyboardGeometry(this.#range, this.#board.clientWidth, this.#withPedal);
+    this.#geometry = geometry;
+    for (const { midi, left, width } of geometry.keys) {
+      const style = this.#keys.get(midi)?.key.style;
+      if (!style) continue;
+      style.left = `${left}px`;
+      style.width = `${width}px`;
+    }
+    if (geometry.pedal) {
+      this.#pedalKey.style.left = `${geometry.pedal.left}px`;
+      this.#pedalKey.style.width = `${geometry.pedal.width}px`;
+    }
+    for (const listener of this.#geometryListeners) listener(geometry);
+
+    const compact = geometry.whiteKeyWidth < MIN_LABELED_KEY_PX;
     if (compact !== this.#compact) {
       this.#compact = compact;
       this.#container.classList.toggle('keyboard-compact', compact);
