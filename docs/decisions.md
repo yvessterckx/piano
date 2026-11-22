@@ -4,6 +4,20 @@ Update this file whenever a decision is made. Newest first within each section.
 
 ## Decisions
 
+### 2026-11-22: Practice screen layout on phones and tablets
+
+Based on `research/05-practice-screen-layout.md`. Practice happens on an iPhone and on an iPad, in portrait or in landscape, so both orientations must work. The music desk does not cover the bottom edge of the screen.
+
+- **One screen, no page scroll.** The score sits directly above the keyboard, the keyboard at the bottom edge, and all controls in one compact bar at the top: play and pause, back to the start (of the loop or the piece), the measure, tempo, hands, loop and a menu for the rest. On a phone in landscape the bar becomes a rail along the side. This replaces the header and the controls in the middle of the 2026-11-20 layout.
+- **Score:** systems under each other on phones in portrait and on tablets, with the cursor's system kept at the top. On phones in landscape one horizontal line that moves on stepwise, so at least one measure ahead stays in view. The app chooses by device and orientation; there is no switch.
+- **Keyboard: always all 88 keys,** fitted to the width, without horizontal scrolling. Where the keys are too narrow for names (on a phone), the names of the sounding notes appear in a strip above the keyboard. This differs from the research, which recommended a keyboard fitted to the range of the piece.
+- **Loop:** chosen by tapping its first and last measure in the score.
+- **Progress slider:** left out on phones (tap a measure, or "back to start"); kept on tablets and laptops.
+- **Title:** in the bar where there is room (tablets, laptops); on a phone only in the menu.
+- **The screen stays awake** while a piece is open and playing (Screen Wake Lock), and a **fullscreen button** appears where the Fullscreen API exists (not on iPhone).
+- Taken over from the research without discussion: a score size setting stored on the device on top of a default zoom of 1 (readability at the piano still to be checked), and portrait on phones supported with a one-time hint that landscape gives more room.
+- Not chosen for now: hiding the keyboard, and an installable web app earlier than phase 3.
+
 ### 2026-11-22: No file type filter on "Open file"
 
 The file input has no `accept` attribute. On iOS, Safari turns the accepted extensions into system file types and silently drops the ones the system does not know, which includes `.mxl` and `.musicxml`; vendor MIME types such as `application/vnd.recordare.musicxml` fare no better. Checked in WebKit's source (`WKFileUploadPanel`) and in the iOS Simulator: with the filter, only `.xml` files could be picked. Android was not checked.
@@ -88,7 +102,7 @@ Highlighting keys on a photo of a real piano is fragile (perspective, lighting, 
 
 ### 2026-11-20: Practice screen layout
 
-Score at the top, controls in the middle, keyboard at the bottom. Dark interface, white score card. See `design/`.
+Score at the top, controls in the middle, keyboard at the bottom. Dark interface, white score card. See `design/`. The arrangement was replaced on 2026-11-22 ("Practice screen layout on phones and tablets").
 
 ### 2026-11-20: Colors per hand
 
@@ -102,12 +116,12 @@ Earlier notes named Musicnotes and MuseScore as sources for MusicXML of copyrigh
 
 ## Open questions
 
-| Question                                         | Why it matters                                             | Answer                                                              |
-| ------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------- |
-| Number of keys on the target piano (88, 76, 61)? | Keyboard range                                             | 88 (2026-11-22)                                                     |
-| Do re mi or C D E?                               | Note names on the keys                                     | Do re mi by default, switchable to C D E (2026-11-22)               |
-| Which device is used for practice?               | Screen size; MIDI input is not possible on iPad            | Responsive, usable on mobile; tested on a laptop first (2026-11-22) |
-| Digital piano with USB/MIDI?                     | Wait mode and per-note feedback                            |                                                                     |
-| OSMD or Verovio?                                 | Core of the app                                            | OSMD (2026-11-22, see decisions above)                              |
-| Where does the app run?                          | Locally or on static hosting, without scores on the server | GitHub Pages (2026-11-22)                                           |
-| UI language: Dutch, English or multilingual?     | All UI text, and whether i18n is needed from the start     | English for now, multilingual later (2026-11-22)                    |
+| Question                                         | Why it matters                                             | Answer                                                  |
+| ------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------- |
+| Number of keys on the target piano (88, 76, 61)? | Keyboard range                                             | 88 (2026-11-22)                                         |
+| Do re mi or C D E?                               | Note names on the keys                                     | Do re mi by default, switchable to C D E (2026-11-22)   |
+| Which device is used for practice?               | Screen size; MIDI input is not possible on iPad            | iPhone and iPad, in portrait and landscape (2026-11-22) |
+| Digital piano with USB/MIDI?                     | Wait mode and per-note feedback                            |                                                         |
+| OSMD or Verovio?                                 | Core of the app                                            | OSMD (2026-11-22, see decisions above)                  |
+| Where does the app run?                          | Locally or on static hosting, without scores on the server | GitHub Pages (2026-11-22)                               |
+| UI language: Dutch, English or multilingual?     | All UI text, and whether i18n is needed from the start     | English for now, multilingual later (2026-11-22)        |

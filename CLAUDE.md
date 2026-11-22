@@ -68,7 +68,7 @@ Hand assignment: MusicXML does not say which hand plays a staff, so this is an a
 
 ## Design summary
 
-- Dark interface (`#111418`), white score card, controls in the middle, keyboard at the bottom.
+- Dark interface (`#111418`), white score card. One screen without page scroll: controls in one bar at the top (a rail along the side on phones in landscape), the score directly above the keyboard, the keyboard (all 88 keys, fitted to the width) at the bottom edge. See `docs/decisions.md`.
 - Left hand `#D9730D` (orange), right hand `#1F6FEB` (blue). The pair also differs in lightness, so it stays readable for people with color vision deficiency.
 - Inter for body text, Space Grotesk for headings.
 - Responsive: usable on phones, tablets and laptops. Buttons at least 44 px high, so the app works on a tablet at the piano.
