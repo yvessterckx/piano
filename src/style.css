@@ -13,6 +13,7 @@
   --color-right-hand: #1f6feb;
   --color-right-hand-light: #4d8df5;
   --color-cursor: #e6ecf5;
+  --color-loop: #dde8fb;
   --color-key-white: #fff;
   --color-key-black: #14171c;
   --color-keybed: #0b0d10;
@@ -21,6 +22,7 @@
   --font-heading: 'Space Grotesk', var(--font-body);
   --radius: 14px;
   --control-height: 44px;
+  --keyboard-height: clamp(110px, 18vh, 170px);
   color-scheme: dark;
 }
 
@@ -31,21 +33,23 @@
 }
 
 html {
+  height: 100%;
   /* No double-tap zoom on phones: two quick taps (pause, play) are two taps. Pinch zoom stays. */
   touch-action: manipulation;
 }
 
 body {
+  height: 100%;
   margin: 0;
+  /* One screen: only the score scrolls, inside its own box. */
+  overflow: hidden;
   background: var(--color-background);
   color: var(--color-text);
   font: 400 16px/1.5 var(--font-body);
 }
 
-h1 {
-  margin: 0;
-  font: 600 clamp(1.5rem, 4vw, 1.9rem) / 1.1 var(--font-heading);
-  letter-spacing: -0.01em;
+#app {
+  height: 100%;
 }
 
 .muted {
@@ -62,61 +66,308 @@ h1 {
   white-space: nowrap;
 }
 
-/* Layout */
+/* Layout: one screen of control bar, score and keyboard (see src/ui/layout.ts). */
 
-.app-header,
-.app-main {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 16px;
+.practice {
+  display: grid;
+  grid-template:
+    'toolbar' auto
+    'stage' minmax(0, 1fr)
+    'keyboard' auto
+    / minmax(0, 1fr);
+  gap: 8px;
+  height: 100vh;
+  height: 100dvh;
+  padding: 8px;
 }
 
-.app-header {
+[data-layout='phone-landscape'] .practice {
+  grid-template:
+    'stage toolbar' minmax(0, 1fr)
+    'keyboard toolbar' auto
+    / minmax(0, 1fr) auto;
+  --keyboard-height: 64px;
+}
+
+[data-layout='phone-portrait'] .practice {
+  --keyboard-height: 96px;
+}
+
+.toolbar {
+  grid-area: toolbar;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.app-title {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
-.app-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+/* A rail of two columns: landscape phones are short (about 260 px under Safari's bars). */
+[data-layout='phone-landscape'] .toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, var(--control-height));
+  grid-auto-rows: var(--control-height);
+  align-content: start;
+  gap: 6px;
+  overflow-y: auto;
 }
 
-.app-main {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding-top: 0;
+.stage {
+  grid-area: stage;
+  position: relative;
+  min-height: 0;
 }
 
-.panel {
-  padding: 14px 18px;
-  border-radius: var(--radius);
-  background: var(--color-panel);
+.keyboard-area {
+  grid-area: keyboard;
+  min-width: 0;
 }
 
-.status {
-  margin: 0;
-  padding: 10px 14px;
+/* Control bar */
+
+.tool {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height);
+  height: var(--control-height);
+  padding: 0;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   background: var(--color-panel);
+  color: var(--color-text);
+  font: 600 18px var(--font-body);
+  cursor: pointer;
 }
 
-.status[data-kind='error'] {
+.tool-play {
+  border-color: transparent;
+  border-radius: 50%;
+  background: var(--color-text);
+  color: var(--color-background);
+}
+
+.tool-text {
+  width: auto;
+  min-width: var(--control-height);
+  padding: 0 8px;
+  font-size: 14px;
+}
+
+.tool[aria-pressed='true'] {
+  border-color: var(--color-text);
+  background: var(--color-text);
+  color: var(--color-background);
+}
+
+.tool-choosing[aria-pressed='true'] {
+  border-style: dashed;
+  background: var(--color-panel);
+  color: var(--color-text);
+}
+
+.tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.toolbar-title {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 28%;
+  margin-right: 6px;
+  line-height: 1.25;
+}
+
+.toolbar-title > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar-title strong {
+  font: 600 16px var(--font-heading);
+}
+
+.toolbar-title span {
+  font-size: 13px;
+}
+
+.measure {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-soft);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress {
+  flex: 1 1 160px;
+  min-width: 80px;
+}
+
+[data-layout='regular'] .measure {
+  flex: 0 0 auto;
+}
+
+[data-layout^='phone'] .toolbar-title,
+[data-layout^='phone'] .progress {
+  display: none;
+}
+
+[data-layout='phone-landscape'] .measure {
+  order: 1;
+  grid-column: span 2;
+  align-self: center;
+  font-size: 13px;
+  text-align: center;
+}
+
+[data-layout='phone-landscape'] .tool-text {
+  padding: 0;
+}
+
+.hands-icon {
+  display: flex;
+  gap: 5px;
+}
+
+/* Score */
+
+.score-card {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--color-ink);
+}
+
+/* The OSMD container. Positioned and isolated, so the cursor band blends only with the score. */
+.score {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  cursor: pointer;
+}
+
+[data-layout='phone-landscape'] .score {
+  overflow: auto hidden;
+}
+
+.score-cursor {
+  position: absolute;
+  z-index: 1;
+  border-radius: 6px;
+  background: var(--color-cursor);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  transition:
+    left 60ms linear,
+    top 120ms ease-out;
+}
+
+.score-cursor::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-right-hand);
+}
+
+.measure-mark {
+  position: absolute;
+  border-radius: 4px;
+  background: var(--color-loop);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+
+.empty[hidden] {
+  display: none;
+}
+
+.empty p {
+  margin: 0;
+  max-width: 28em;
+}
+
+/* At the bottom of the score: the top shows the system being read. */
+.notices {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgb(26 31 38 / 94%);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+  font-size: 14px;
+  pointer-events: auto;
+}
+
+.notice[hidden] {
+  display: none;
+}
+
+.notice[data-kind='error'] {
   color: var(--color-error);
+  cursor: pointer;
 }
 
-/* Controls */
+.notice-hint {
+  padding-right: 0;
+}
+
+.notice-close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height);
+  height: 36px;
+  border: none;
+  background: none;
+  color: var(--color-text-soft);
+  cursor: pointer;
+}
+
+/* Buttons, fields and panels */
 
 .button,
 .field {
@@ -137,30 +388,19 @@ h1 {
   cursor: pointer;
 }
 
-.button[aria-pressed='true'] {
-  border-color: var(--color-text);
-  background: var(--color-text);
-  color: var(--color-background);
+.button[hidden],
+.field[hidden] {
+  display: none;
 }
 
-.button:disabled,
-.field:disabled,
-.play-button:disabled,
-.slider:disabled {
-  opacity: 0.4;
-  cursor: default;
+.button-primary {
+  border-color: transparent;
+  background: var(--color-ink);
+  color: #fff;
 }
 
 .field {
   padding: 0 10px;
-}
-
-.field-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--color-text-muted);
-  font-size: 14px;
 }
 
 .checkbox {
@@ -187,53 +427,73 @@ h1 {
   outline-offset: 2px;
 }
 
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px 20px;
+.popover {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-panel);
+  color: var(--color-text);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
 }
 
-.play-button {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border: none;
-  border-radius: 50%;
-  background: var(--color-text);
-  color: var(--color-background);
-  cursor: pointer;
-}
-
-.play-button svg {
-  width: 22px;
-  height: 22px;
-}
-
-.control-group {
+.popover:popover-open {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+  gap: 12px;
 }
 
-.progress {
-  flex: 1 1 240px;
+#tempo-panel {
+  width: min(300px, calc(100vw - 12px));
 }
 
-.tempo {
-  flex: 0 1 220px;
-  min-width: 180px;
+.menu {
+  width: min(320px, calc(100vw - 12px));
+  max-height: calc(100dvh - 12px);
+  overflow-y: auto;
+}
+
+.menu-piece {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.menu-piece strong {
+  font: 600 16px var(--font-heading);
+}
+
+.menu-piece span {
+  font-size: 13px;
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-text-soft);
+  font-size: 14px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stepper span {
+  min-width: 48px;
+  text-align: center;
 }
 
 .control-labels {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-muted);
 }
 
@@ -248,17 +508,12 @@ h1 {
   accent-color: var(--color-text);
 }
 
-.hand-choice,
-.loop {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
+.slider:disabled {
+  opacity: 0.4;
 }
 
 .segmented {
   display: flex;
-  flex-wrap: wrap;
   gap: 4px;
   padding: 4px;
   border-radius: 12px;
@@ -267,15 +522,18 @@ h1 {
 
 .segmented button {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  min-height: var(--control-height);
-  padding: 0 14px;
+  min-height: 40px;
+  padding: 0 12px;
   border: none;
   border-radius: 9px;
   background: transparent;
   color: var(--color-text-soft);
   font: 500 14px var(--font-body);
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -283,11 +541,6 @@ h1 {
   background: var(--color-text);
   color: var(--color-background);
   font-weight: 600;
-}
-
-.segmented-small button {
-  min-height: 36px;
-  padding: 0 12px;
 }
 
 .dot {
@@ -304,101 +557,47 @@ h1 {
   background: var(--color-right-hand-light);
 }
 
-/* Score */
+.dot-off {
+  opacity: 0.25;
+}
 
-.score-card {
-  border-radius: var(--radius);
-  background: #fff;
+/* Keyboard: all 88 keys fitted to the width (see src/keyboard/Keyboard.ts). */
+
+.keyboard-names {
+  position: relative;
+  height: 0;
+}
+
+.keyboard-compact .keyboard-names {
+  height: 22px;
+  margin-bottom: 3px;
+}
+
+.keyboard-name {
+  position: absolute;
+  top: 0;
+  padding: 0 5px;
+  border-radius: 6px;
+  font: 700 13px/22px var(--font-body);
+  white-space: nowrap;
+}
+
+.keyboard-name-left {
+  background: var(--color-left-hand);
   color: var(--color-ink);
 }
 
-/* The OSMD container. Positioned and isolated, so the cursor band blends only with the score. */
-.score {
-  position: relative;
-  isolation: isolate;
-  height: clamp(220px, 45vh, 640px);
-  overflow: auto;
-  padding: 8px;
-  cursor: pointer;
-}
-
-.score-cursor {
-  position: absolute;
-  z-index: 1;
-  border-radius: 6px;
-  background: var(--color-cursor);
-  mix-blend-mode: multiply;
-  pointer-events: none;
-  transition:
-    left 60ms linear,
-    top 120ms ease-out;
-}
-
-.score-cursor::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-top-color: var(--color-right-hand);
-}
-
-/* Keyboard */
-
-.keyboard-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.keyboard-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-}
-
-.legend > span {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-}
-
-.swatch-left {
-  background: var(--color-left-hand);
-}
-
-.swatch-right {
+.keyboard-name-right {
   background: var(--color-right-hand);
-  outline: 1px solid #6fa2f7;
-}
-
-.keyboard-scroll {
-  overflow-x: auto;
+  color: #fff;
 }
 
 .keyboard {
   --key-width: calc(100% / var(--white-keys));
   position: relative;
-  min-width: calc(var(--white-keys) * 17px);
-  height: clamp(120px, 22vh, 176px);
-  border-top: 6px solid var(--color-keybed);
+  width: 100%;
+  height: var(--keyboard-height);
+  border-top: 4px solid var(--color-keybed);
   border-radius: 4px;
   background: var(--color-keybed);
 }
@@ -418,7 +617,7 @@ h1 {
   width: calc(var(--key-width) - 1px);
   height: 100%;
   padding-bottom: 9px;
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 3px 3px;
   background: var(--color-key-white);
   color: #5b6470;
   font-weight: 500;
@@ -430,10 +629,23 @@ h1 {
   width: calc(var(--key-width) * 0.64);
   height: 62%;
   padding-bottom: 6px;
-  border-radius: 0 0 3px 3px;
+  border-radius: 0 0 2px 2px;
   background: var(--color-key-black);
   color: #fff;
   font-size: 9px;
+}
+
+/* Middle C, for orientation on a keyboard too narrow for names. */
+.key-middle-c::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: #8a939e;
 }
 
 .key-left {
@@ -451,16 +663,4 @@ h1 {
 .key-label {
   white-space: nowrap;
   pointer-events: none;
-}
-
-@media (max-width: 640px) {
-  .app-header,
-  .app-main {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  .tempo {
-    flex-basis: 100%;
-  }
 }

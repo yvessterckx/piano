@@ -18,6 +18,13 @@ Based on `research/05-practice-screen-layout.md`. Practice happens on an iPhone 
 - Taken over from the research without discussion: a score size setting stored on the device on top of a default zoom of 1 (readability at the piano still to be checked), and portrait on phones supported with a one-time hint that landscape gives more room.
 - Not chosen for now: hiding the keyboard, and an installable web app earlier than phase 3.
 
+Built on the same day. Details and known limits:
+
+- The layout is chosen by viewport (`ui/layout.ts`): phone landscape below 500 px high, phone portrait up to 600 px wide, everything else regular. Rotating lays the score out again; playback continues.
+- On one line, the music is drawn as large as the height allows up to the score size setting, but not below 60%. A piece with notes far above or below the staves (e.g. the Schumann test piece) is then taller than a phone in landscape: the staves stay in view and the notes far outside them can be cut off.
+- The keyboard puts the names on the keys from 18 px per white key (tablets in landscape, laptops) and in the row above them below that.
+- Tempo and hands open small panels from the bar (popovers); note names, score size, opening a file and full screen are in the menu.
+
 ### 2026-11-22: No file type filter on "Open file"
 
 The file input has no `accept` attribute. On iOS, Safari turns the accepted extensions into system file types and silently drops the ones the system does not know, which includes `.mxl` and `.musicxml`; vendor MIME types such as `application/vnd.recordare.musicxml` fare no better. Checked in WebKit's source (`WKFileUploadPanel`) and in the iOS Simulator: with the filter, only `.xml` files could be picked. Android was not checked.

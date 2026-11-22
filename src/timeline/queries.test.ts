@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { eventsSoundingAt, measurePositionAt } from './queries';
+import {
+  eventsSoundingAt,
+  measurePositionAt,
+  measuresInSpan,
+  spanBetweenMeasures,
+} from './queries';
 import type { Timeline } from './types';
 
 const timeline: Timeline = {
@@ -86,5 +91,43 @@ describe('eventsSoundingAt', () => {
     expect(eventsSoundingAt(timeline, 1).map((e) => e.midi)).toEqual([48, 72]);
     expect(eventsSoundingAt(timeline, 3).map((e) => e.midi)).toEqual([48]);
     expect(eventsSoundingAt(timeline, 4)).toEqual([]);
+  });
+});
+
+describe('spanBetweenMeasures', () => {
+  // Source measures 0 1 2 3 played as 0 1 2 1 2 3 (measures 1 and 2 repeated).
+  const repeated: Timeline = {
+    measures: [0, 1, 2, 1, 2, 3].map((sourceIndex, index) => ({
+      index,
+      sourceIndex,
+      label: String(sourceIndex + 1),
+      startBeat: index * 4,
+      durationBeats: 4,
+    })),
+    events: [],
+    tempo: [],
+    durationBeats: 24,
+  };
+
+  it('spans from the first measure to the last, whichever is tapped first', () => {
+    expect(spanBetweenMeasures(repeated, 0, 3)).toEqual({ startBeat: 0, endBeat: 24 });
+    expect(spanBetweenMeasures(repeated, 3, 0)).toEqual({ startBeat: 0, endBeat: 24 });
+  });
+
+  it('takes the first time a repeated measure is played', () => {
+    expect(spanBetweenMeasures(repeated, 1, 2)).toEqual({ startBeat: 4, endBeat: 12 });
+  });
+
+  it('spans one measure when both taps are on it', () => {
+    expect(spanBetweenMeasures(repeated, 2, 2)).toEqual({ startBeat: 8, endBeat: 12 });
+  });
+
+  it('is undefined for a measure that is never played', () => {
+    expect(spanBetweenMeasures(repeated, 0, 9)).toBeUndefined();
+  });
+
+  it('lists the measures of the score within a span, each once', () => {
+    expect(measuresInSpan(repeated, { startBeat: 4, endBeat: 20 })).toEqual([1, 2]);
+    expect(measuresInSpan(repeated, { startBeat: 0, endBeat: 4 })).toEqual([0]);
   });
 });

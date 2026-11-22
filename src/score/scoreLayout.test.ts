@@ -13,9 +13,19 @@ const layout: ScoreLayout = [
     right: 40,
     top: 5,
     bottom: 50,
+    extentTop: 2,
+    extentBottom: 52,
   },
   undefined,
-  { columns: [{ beatInMeasure: 0.5, x: 70 }], left: 5, right: 90, top: 60, bottom: 100 },
+  {
+    columns: [{ beatInMeasure: 0.5, x: 70 }],
+    left: 5,
+    right: 90,
+    top: 60,
+    bottom: 100,
+    extentTop: 60,
+    extentBottom: 100,
+  },
 ];
 
 describe('cursorBoxAt', () => {

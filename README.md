@@ -12,7 +12,7 @@ Requires Node 26 (see `.nvmrc`).
 
 ```bash
 npm install
-npm run dev      # dev server, with the test scores in a dropdown
+npm run dev      # dev server, with the test scores in the menu (or ?fixture=<file name>)
 npm run check    # typecheck, lint, format check and tests
 npm run build    # production build in dist/
 ```

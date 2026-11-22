@@ -1,6 +1,7 @@
 import type { Hand, NoteSpelling } from '../timeline/types';
 import { keysInRange } from './keys';
 import type { KeyboardRange } from './keys';
+import { spreadLabels } from './nameLabels';
 import { keyName, spelledName } from './noteNames';
 import type { NoteNaming } from './noteNames';
 
@@ -16,42 +17,64 @@ interface KeyElements {
   readonly label: HTMLElement;
 }
 
+/** Narrower white keys than this cannot hold a note name: the names go in a row above them. */
+const MIN_LABELED_KEY_PX = 18;
+const NAME_GAP_PX = 3;
+const MIDDLE_C = 60;
+
 /**
- * The on-screen keyboard. Knows nothing about scores: it shows the keys it is given, colored by
- * hand, with the note name on each lit key and on every C for orientation.
+ * The on-screen keyboard, fitted to the width of its container (no scrolling, so the keys never
+ * move). Knows nothing about scores: it shows the keys it is given, colored by hand. Each lit key
+ * carries its note name, and every C its name for orientation; when the keys are too narrow for
+ * that (a phone), the names of the lit keys appear in a row above them instead. Middle C is
+ * marked either way.
  */
 export class Keyboard {
-  readonly #scroller: HTMLElement;
+  readonly #container: HTMLElement;
+  readonly #board: HTMLElement;
+  readonly #names: HTMLElement;
+  readonly #whiteKeys: number;
   readonly #keys = new Map<number, KeyElements>();
   #naming: NoteNaming;
   #active = new Map<number, ActiveKey>();
+  #compact = false;
 
-  /** @param scroller element that scrolls horizontally when the keyboard is wider than the screen */
-  constructor(scroller: HTMLElement, range: KeyboardRange, naming: NoteNaming) {
-    this.#scroller = scroller;
+  constructor(container: HTMLElement, range: KeyboardRange, naming: NoteNaming) {
+    this.#container = container;
     this.#naming = naming;
     const keys = keysInRange(range);
-    const board = document.createElement('div');
-    board.className = 'keyboard';
-    board.style.setProperty('--white-keys', String(keys.filter((key) => !key.black).length));
+    this.#whiteKeys = keys.filter((key) => !key.black).length;
+
+    this.#names = document.createElement('div');
+    this.#names.className = 'keyboard-names';
+    this.#names.setAttribute('aria-hidden', 'true');
+    this.#board = document.createElement('div');
+    this.#board.className = 'keyboard';
+    this.#board.style.setProperty('--white-keys', String(this.#whiteKeys));
 
     for (const { midi, black, whiteIndex } of keys) {
       const key = document.createElement('div');
       key.className = black ? 'key key-black' : 'key key-white';
+      if (midi === MIDDLE_C) key.classList.add('key-middle-c');
       key.style.setProperty('--index', String(whiteIndex));
       const label = document.createElement('span');
       label.className = 'key-label';
       key.append(label);
-      board.append(key);
+      this.#board.append(key);
       this.#keys.set(midi, { key, label });
     }
-    scroller.replaceChildren(board);
+    container.replaceChildren(this.#names, this.#board);
     for (const midi of this.#keys.keys()) this.#renderKey(midi);
+
+    new ResizeObserver(() => {
+      this.#fitToWidth();
+    }).observe(this.#board);
   }
 
   setNaming(naming: NoteNaming): void {
     this.#naming = naming;
     for (const midi of this.#keys.keys()) this.#renderKey(midi);
+    this.#renderNames();
   }
 
   /** Lights up exactly these keys. Only keys that change are touched. */
@@ -67,7 +90,18 @@ export class Keyboard {
     }
     this.#active = next;
     for (const midi of changed) this.#renderKey(midi);
-    if (changed.size > 0) this.#keepActiveKeysVisible();
+    if (changed.size > 0) this.#renderNames();
+  }
+
+  /** Switches between names on the keys and names above them, by the width of a key. */
+  #fitToWidth(): void {
+    const compact = this.#board.clientWidth / this.#whiteKeys < MIN_LABELED_KEY_PX;
+    if (compact !== this.#compact) {
+      this.#compact = compact;
+      this.#container.classList.toggle('keyboard-compact', compact);
+      for (const midi of this.#keys.keys()) this.#renderKey(midi);
+    }
+    this.#renderNames();
   }
 
   #renderKey(midi: number): void {
@@ -76,23 +110,37 @@ export class Keyboard {
     const active = this.#active.get(midi);
     elements.key.classList.toggle('key-left', active?.hand === 'left');
     elements.key.classList.toggle('key-right', active?.hand === 'right');
-    elements.label.textContent = active
-      ? spelledName(active.spelling, this.#naming)
-      : midi % 12 === 0
-        ? keyName(midi, this.#naming)
-        : '';
+    elements.label.textContent = this.#compact
+      ? ''
+      : active
+        ? spelledName(active.spelling, this.#naming)
+        : midi % 12 === 0
+          ? keyName(midi, this.#naming)
+          : '';
   }
 
-  /** On a narrow screen, scrolls the keyboard so the lit keys are in view. */
-  #keepActiveKeysVisible(): void {
-    const scroller = this.#scroller;
-    if (scroller.scrollWidth <= scroller.clientWidth || this.#active.size === 0) return;
-    const elements = [...this.#active.keys()].flatMap((midi) => this.#keys.get(midi)?.key ?? []);
-    const left = Math.min(...elements.map((element) => element.offsetLeft));
-    const right = Math.max(...elements.map((element) => element.offsetLeft + element.offsetWidth));
-    const visibleLeft = scroller.scrollLeft;
-    const visibleRight = visibleLeft + scroller.clientWidth;
-    if (left >= visibleLeft && right <= visibleRight) return;
-    scroller.scrollTo({ left: (left + right) / 2 - scroller.clientWidth / 2, behavior: 'smooth' });
+  /** In compact mode, the names of the lit keys in a row above them, each over its key. */
+  #renderNames(): void {
+    if (!this.#compact) {
+      this.#names.replaceChildren();
+      return;
+    }
+    const active = [...this.#active.values()].sort((a, b) => a.midi - b.midi);
+    const labels = active.map(({ hand, spelling }) => {
+      const label = document.createElement('span');
+      label.className = `keyboard-name keyboard-name-${hand}`;
+      label.textContent = spelledName(spelling, this.#naming);
+      return label;
+    });
+    this.#names.replaceChildren(...labels);
+    const spans = active.map(({ midi }, i) => {
+      const key = this.#keys.get(midi)?.key;
+      return {
+        center: key ? key.offsetLeft + key.offsetWidth / 2 : 0,
+        width: labels[i]?.offsetWidth ?? 0,
+      };
+    });
+    const lefts = spreadLabels(spans, this.#names.clientWidth, NAME_GAP_PX);
+    labels.forEach((label, i) => (label.style.left = `${lefts[i] ?? 0}px`));
   }
 }

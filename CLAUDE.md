@@ -5,7 +5,7 @@ A web app for practicing piano. The learner sees the score, hears the music and 
 ## Current status
 
 - **Design:** static design of the practice screen in Claude Design: https://claude.ai/artifact/BfKAXAFRrr8adkSGfTrFhA. Local copy and notes in `design/`.
-- **Code:** phases 0 to 2 of `docs/roadmap.md` are done: the practice screen plays a loaded score with a piano sound, with the cursor and the keyboard in sync, tempo, hand selection, a loop and starting from a clicked measure. Phase 3 (polish) is next.
+- **Code:** phases 0 to 2 of `docs/roadmap.md` are done: the practice screen plays a loaded score with a piano sound, with the cursor and the keyboard in sync, tempo, hand selection, a loop and starting from a clicked measure. Phase 3 (polish) is in progress: the layout for phones and tablets is done.
 - **Research:** `docs/research/`. Read it before choosing a library or making an architectural decision.
 - **Decisions and open questions:** `docs/decisions.md`. Update this file whenever a decision is made.
 
@@ -54,11 +54,11 @@ Later (not in the MVP): MIDI input from a digital piano with a wait mode, loadin
 
 Keep these layers separate (all under `src/`), so the renderer stays replaceable and the core is testable without DOM or audio:
 
-- `score/`: loading and rendering the file. `scoreFile` checks a picked file before it is loaded (the file input has no `accept` filter, see `docs/decisions.md`). `score/osmd/` is the only code that knows OSMD: `OsmdScore` loads and renders, `extractTimelineInput` walks OSMD's iterator (which unrolls repeats, endings and D.C./D.S.) and reports every written note per pass as a `NoteOccurrence`, `readScoreLayout` reads the cursor columns after each render. The cursor band (`ScoreCursor`) is our own element, not OSMD's cursor.
+- `score/`: loading and rendering the file. `scoreFile` checks a picked file before it is loaded (the file input has no `accept` filter, see `docs/decisions.md`). `score/osmd/` is the only code that knows OSMD: `OsmdScore` loads and renders, `extractTimelineInput` walks OSMD's iterator (which unrolls repeats, endings and D.C./D.S.) and reports every written note per pass as a `NoteOccurrence`, `readScoreLayout` reads the cursor columns and measure extents after each render. `OsmdScore` lays the score out as systems under each other or as one horizontal line. The cursor band (`ScoreCursor`) is our own element, not OSMD's cursor; `scrollToKeepReading` decides when the score scrolls (a new system to the top; on one line, stepwise with the next measure in view).
 - `timeline/`: pure data, no DOM, no audio, no OSMD. `buildTimeline` turns note occurrences into a `Timeline`: events `{ startBeat, durationBeats, midi, hand, staff, measure, noteRefs }` sorted by beat, plus measures in playback order and tempo changes. Ties are merged here, per pass. A beat is one quarter note, counted from the start of the unrolled piece.
 - `playback/`: `Transport` (play, pause, seek, tempo, loop) schedules the timeline's notes a short time ahead on the audio clock and gives the position at any audio time; `tempoMap` converts beats and seconds; `PianoSound` is the smplr adapter (one piano per hand, shared samples). The transport only knows the `AudioClock` and `NotePlayer` interfaces, so it is tested without audio.
-- `keyboard/`: `Keyboard` draws the keys and lights the ones it is given, colored by hand and named as written (do re mi or C D E). Knows nothing about scores.
-- `ui/`: the practice screen (`practicePage`), device preferences, icons. It wires the layers: cursor and keyboard are drawn from the transport's position on every animation frame. OSMD and smplr are loaded on demand.
+- `keyboard/`: `Keyboard` draws all keys fitted to the width and lights the ones it is given, colored by hand and named as written (do re mi or C D E). When the keys are too narrow for names, the names of the lit keys go in a row above them (`spreadLabels`). Knows nothing about scores.
+- `ui/`: the practice screen (`practicePage`), the layout per device and orientation (`layout`: phone portrait, phone landscape, regular; `style.css` keys off `data-layout`), popovers, the screen wake lock, device preferences, icons. It wires the layers: cursor and keyboard are drawn from the transport's position on every animation frame. OSMD and smplr are loaded on demand.
 
 Outside `src/`: `tests/fixtures/` (test scores, see its README), `tests/helpers/`, `tools/` (the dev-only Vite plugin that serves the test scores).
 
@@ -83,7 +83,7 @@ Ask the maintainer about these if they are not yet answered in `docs/decisions.m
 
 Node 26 (see `.nvmrc`).
 
-- `npm run dev`: dev server. The spike page lists the test scores in a dropdown (development only).
+- `npm run dev`: dev server. The menu lists the test scores (development only); `?fixture=<file name>` opens one directly, e.g. on a simulator.
 - `npm test`: all tests once (`npm run test:watch` to keep watching).
 - `npm run check`: typecheck, lint, format check and tests: what CI runs before a deploy.
 - `npm run build`: production build in `dist/`. Contains no scores.

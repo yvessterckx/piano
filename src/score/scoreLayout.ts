@@ -18,6 +18,12 @@ export interface MeasureLayout {
   readonly top: number;
   /** Bottom of the last staff of that system. */
   readonly bottom: number;
+  /**
+   * Top and bottom of everything drawn in this measure on its system, such as notes on ledger
+   * lines and dynamics above or below the staves. At least top and bottom.
+   */
+  readonly extentTop: number;
+  readonly extentBottom: number;
 }
 
 /** Indexed by source measure index; undefined for a measure that is not drawn. */

@@ -42,12 +42,23 @@ export function readScoreLayout(graphic: GraphicalMusicSheet): ScoreLayout {
 
     const box = first.PositionAndShape;
     const systemTop = system.PositionAndShape.AbsolutePosition.y;
+    const firstStaffTop = systemTop + firstStaff.PositionAndShape.RelativePosition.y;
+    const lastStaffTop = systemTop + lastStaff.PositionAndShape.RelativePosition.y;
+    // The sky and bottom lines are relative to their staff line, in the measure's x range on it.
+    const left = box.RelativePosition.x;
+    const right = left + box.Size.width;
+    const sky = firstStaff.SkyBottomLineCalculator.getSkyLineMinInRange(left, right);
+    const ground = lastStaff.SkyBottomLineCalculator.getBottomLineMaxInRange(left, right);
     return {
       columns,
       left: box.AbsolutePosition.x,
       right: box.AbsolutePosition.x + box.Size.width,
-      top: systemTop + firstStaff.PositionAndShape.RelativePosition.y,
-      bottom: systemTop + lastStaff.PositionAndShape.RelativePosition.y + lastStaff.StaffHeight,
+      top: firstStaffTop,
+      bottom: lastStaffTop + lastStaff.StaffHeight,
+      extentTop: firstStaffTop + (Number.isFinite(sky) ? Math.min(sky, 0) : 0),
+      extentBottom:
+        lastStaffTop +
+        (Number.isFinite(ground) ? Math.max(ground, lastStaff.StaffHeight) : lastStaff.StaffHeight),
     };
   });
 }

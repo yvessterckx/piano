@@ -45,3 +45,39 @@ export function eventsSoundingAt(timeline: Timeline, beat: number): TimelineEven
       beat < event.startBeat + event.durationBeats - BEAT_EPSILON,
   );
 }
+
+/** A span of the piece in beats: from startBeat up to (not including) endBeat. */
+export interface BeatSpan {
+  readonly startBeat: number;
+  readonly endBeat: number;
+}
+
+/**
+ * The span from one measure of the score to another (source indices, in either order), in
+ * playback order: from the first time the earlier one is played to the first time the later one
+ * is played after it, both included. Undefined if a measure is never played.
+ */
+export function spanBetweenMeasures(
+  timeline: Timeline,
+  oneSourceIndex: number,
+  otherSourceIndex: number,
+): BeatSpan | undefined {
+  const { measures } = timeline;
+  const one = measures.find((m) => m.sourceIndex === oneSourceIndex);
+  const other = measures.find((m) => m.sourceIndex === otherSourceIndex);
+  if (!one || !other) return undefined;
+  const [first, lastSource] =
+    one.index <= other.index ? [one, otherSourceIndex] : [other, oneSourceIndex];
+  const last = measures.find((m) => m.index >= first.index && m.sourceIndex === lastSource);
+  if (!last) return undefined;
+  return { startBeat: first.startBeat, endBeat: last.startBeat + last.durationBeats };
+}
+
+/** The measures of the score (source indices) played within a span, each once. */
+export function measuresInSpan(timeline: Timeline, span: BeatSpan): number[] {
+  const inSpan = timeline.measures.filter(
+    (m) =>
+      m.startBeat >= span.startBeat - BEAT_EPSILON && m.startBeat < span.endBeat - BEAT_EPSILON,
+  );
+  return [...new Set(inSpan.map((m) => m.sourceIndex))];
+}
