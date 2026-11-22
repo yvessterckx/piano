@@ -20,7 +20,7 @@ npm run build    # production build in dist/
 ## Documentation
 
 - [`docs/decisions.md`](docs/decisions.md): decisions and open questions.
-- [`docs/research/`](docs/research/): research behind the choices (notation, audio, sources and licensing, MIDI, screen layout).
+- [`docs/research/`](docs/research/): research behind the choices (notation, audio, sources and licensing, MIDI, screen layout, falling notes and the sustain pedal).
 - [`design/`](design/): the design of the practice screen.
 - [`tests/fixtures/README.md`](tests/fixtures/README.md): the test scores, with source and license.
 
