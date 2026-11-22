@@ -1,0 +1,9 @@
+dist
+coverage
+package-lock.json
+# Source of the Claude Design artifact: kept exactly as exported.
+design/*.dc.html
+# Test scores are kept byte for byte as obtained.
+tests/fixtures/**/*.xml
+tests/fixtures/**/*.musicxml
+tests/fixtures/**/*.mxl

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>Test: da capo al fine</work-title></work>
+  <identification>
+    <creator type="composer">Piano practice tool test suite</creator>
+    <rights>CC0 1.0. Created for this project.</rights>
+    <encoding><software>Written by hand</software></encoding>
+  </identification>
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <!-- Playback order: 1 2 3 4, then from the start up to Fine: 1 2. -->
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>2</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <duration>2</duration><voice>1</voice><type>half</type>
+      </note>
+    </measure>
+    <measure number="2">
+      <note>
+        <pitch><step>D</step><octave>4</octave></pitch>
+        <duration>2</duration><voice>1</voice><type>half</type>
+      </note>
+      <direction placement="above">
+        <direction-type><words>Fine</words></direction-type>
+        <sound fine="yes"/>
+      </direction>
+      <barline location="right"><bar-style>light-light</bar-style></barline>
+    </measure>
+    <measure number="3">
+      <note>
+        <pitch><step>E</step><octave>4</octave></pitch>
+        <duration>2</duration><voice>1</voice><type>half</type>
+      </note>
+    </measure>
+    <measure number="4">
+      <note>
+        <pitch><step>F</step><octave>4</octave></pitch>
+        <duration>2</duration><voice>1</voice><type>half</type>
+      </note>
+      <direction placement="above">
+        <direction-type><words>D.C. al Fine</words></direction-type>
+        <sound dacapo="yes"/>
+      </direction>
+      <barline location="right"><bar-style>light-heavy</bar-style></barline>
+    </measure>
+  </part>
+</score-partwise>

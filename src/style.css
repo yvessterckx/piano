@@ -1,0 +1,246 @@
+/* Design tokens: see design/README.md. */
+:root {
+  --color-background: #111418;
+  --color-panel: #1a1f26;
+  --color-border: #3a424d;
+  --color-text: #e8eaed;
+  --color-text-muted: #a3abb6;
+  --color-ink: #14171c;
+  --color-left-hand: #d9730d;
+  --color-right-hand: #1f6feb;
+  --color-cursor: #e6ecf5;
+  --color-error: #ff8a80;
+  --font-body: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Space Grotesk', var(--font-body);
+  --radius: 14px;
+  --control-height: 44px;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font: 400 16px/1.5 var(--font-body);
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.app-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 16px 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.button,
+.field {
+  min-height: var(--control-height);
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-panel);
+  color: var(--color-text);
+  font: 500 15px var(--font-body);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--control-height);
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.button-primary {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-background);
+  font-weight: 600;
+}
+
+.button:focus-visible,
+.field:focus-visible,
+.slider:focus-visible {
+  outline: 2px solid var(--color-right-hand);
+  outline-offset: 2px;
+}
+
+.field {
+  padding: 0 10px;
+}
+
+.field-number {
+  width: 7em;
+}
+
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+}
+
+.status {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--color-panel);
+}
+
+.status[data-kind='error'] {
+  color: var(--color-error);
+}
+
+.score-card {
+  background: #fff;
+  border-radius: var(--radius);
+  color: var(--color-ink);
+}
+
+/* The OSMD container. Positioned and isolated, so the cursor band blends only with the score. */
+.score {
+  position: relative;
+  isolation: isolate;
+  min-height: 160px;
+  max-height: 70vh;
+  overflow: auto;
+  padding: 8px;
+}
+
+.score-cursor {
+  position: absolute;
+  z-index: 1;
+  background: var(--color-cursor);
+  border-radius: 6px;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.score-cursor::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-right-hand);
+}
+
+.panel {
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--color-panel);
+}
+
+.position-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.position-row + .position-row {
+  margin-top: 12px;
+}
+
+.slider {
+  flex: 1 1 200px;
+  height: var(--control-height);
+  margin: 0;
+  accent-color: var(--color-text);
+}
+
+.readout {
+  margin: 12px 0 8px;
+}
+
+.sounding {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 36px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.note {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.note-left {
+  background: var(--color-left-hand);
+  color: var(--color-ink);
+}
+
+.note-right {
+  background: var(--color-right-hand);
+  color: #fff;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.stats dt {
+  color: var(--color-text-muted);
+}
+
+.stats dd {
+  margin: 0;
+}

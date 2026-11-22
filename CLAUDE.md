@@ -1,0 +1,94 @@
+# Piano practice tool
+
+A web app for practicing piano. The learner sees the score, hears the music and sees on an on-screen keyboard which keys to press, all in sync. The primary audience is beginners who can already read some notation.
+
+## Current status
+
+- **Design:** static design of the practice screen in Claude Design: https://claude.ai/artifact/BfKAXAFRrr8adkSGfTrFhA. Local copy and notes in `design/`.
+- **Code:** phases 0 and 1 of `docs/roadmap.md` are done: project setup, and a spike page that renders a score with OSMD, derives its timeline and places the cursor on any beat. Phase 2 (playback, keyboard) is next.
+- **Research:** `docs/research/`. Read it before choosing a library or making an architectural decision.
+- **Decisions and open questions:** `docs/decisions.md`. Update this file whenever a decision is made.
+
+## MVP scope
+
+1. Load a MusicXML file (`.musicxml`, `.xml`, `.mxl`) from the device via the File API. No upload to a server.
+2. Render the score with a cursor that follows playback.
+3. Play back with a piano sound: play/pause, tempo from 25% to 100%, start from a clicked measure.
+4. A keyboard below the score that highlights the keys sounding at the current moment: left hand orange, right hand blue, with the note name on the key.
+5. Hand selection: left, right or both. The unselected hand is muted or played more quietly.
+6. Loop over a range of measures.
+
+Later (not in the MVP): MIDI input from a digital piano with a wait mode, loading MIDI files, offline use. See `docs/roadmap.md`.
+
+## Hard rules
+
+### Copyright
+
+- Never write out copyrighted music: no notes, no MusicXML, no MIDI, not even "approximately" or "from memory". This applies even when the user asks for it.
+- The app is a generic player. Copyrighted pieces only enter it through a file the user supplies.
+- Test and example files are public domain only (Bach, Beethoven, Satie, Chopin, ...) or created for this project. Record the source and license of every file in `tests/fixtures/README.md`. Note: a modern edition or arrangement of an old work can still be protected.
+- Loaded scores stay in the browser. Never bundle scores in the build or host them publicly.
+
+### Working agreements
+
+- **No band-aids.** Fix the cause, not the symptom. If a fix masks a symptom, say so and propose the real solution.
+- **No spaghetti code.** Changes are scoped and well structured, without implicit dependencies or entangled logic.
+- **Say so when the right approach takes more work** than the task suggests. Do not silently cut corners.
+- **Never modify files in `node_modules/` or `vendor/`.** They are overwritten on update. State where the change belongs instead.
+- **No em dash ("—")** in responses, UI text, documentation or comments.
+- **Commit messages without Claude as co-author.**
+- Communicate with the maintainer in Dutch. Documentation, code and comments are in English.
+
+## Stack
+
+- Vite + TypeScript, fully client-side, no backend. Versions and why: `docs/decisions.md` ("Toolchain versions").
+- Notation: OpenSheetMusicDisplay (OSMD) 3, decided in the phase 1 spike (see `docs/decisions.md`). Playback is our own.
+- Sound (phase 2, to verify): `smplr` (SplendidGrandPiano). See `docs/research/02-audio.md`.
+- Keyboard: custom component, 88, 76 or 61 keys.
+- Tests: Vitest. Pure logic runs in Node; tests that load a score with OSMD run in jsdom (`// @vitest-environment jsdom`). jsdom cannot measure text, so OSMD cannot render there: check layout code (e.g. the cursor) in a browser.
+- Linting and formatting: ESLint (typescript-eslint, strict type-checked) and Prettier.
+- UI text in English for now (multilingual later); code and identifiers in English.
+- Hosting: GitHub Pages project site (https://yvessterckx.github.io/piano/), deployed by GitHub Actions. Static only; a Symfony backend is planned for later.
+
+## Architecture
+
+Keep these layers separate (all under `src/`), so the renderer stays replaceable and the core is testable without DOM or audio:
+
+- `score/`: loading and rendering the file. `score/osmd/` is the only code that knows OSMD: `OsmdScore` loads and renders, `extractTimelineInput` walks OSMD's iterator (which unrolls repeats, endings and D.C./D.S.) and reports every written note per pass as a `NoteOccurrence`, `readScoreLayout` reads the cursor columns after each render. The cursor band (`ScoreCursor`) is our own element, not OSMD's cursor.
+- `timeline/`: pure data, no DOM, no audio, no OSMD. `buildTimeline` turns note occurrences into a `Timeline`: events `{ startBeat, durationBeats, midi, hand, staff, measure, noteRefs }` sorted by beat, plus measures in playback order and tempo changes. Ties are merged here, per pass. A beat is one quarter note, counted from the start of the unrolled piece.
+- `playback/`: transport (play, pause, seek, tempo, loop). Schedules notes on the `AudioContext` clock and reports which notes are active. Empty until phase 2.
+- `keyboard/`: draws the keyboard and shows the active notes. Knows nothing about scores. Empty until phase 2.
+- `ui/`: controls and settings. Currently the phase 1 spike page.
+
+Outside `src/`: `tests/fixtures/` (test scores, see its README), `tests/helpers/`, `tools/` (the dev-only Vite plugin that serves the test scores).
+
+Single source of truth for time: the `AudioContext` clock. Cursor and keyboard follow the transport, never the other way around.
+
+Hand assignment: MusicXML does not say which hand plays a staff, so this is an assumption, kept in `timeline/hands.ts` so it can later be overridden per piece. A part with two staves: top staff right, bottom staff left. Single-staff parts (a piano score saved as one part per hand): the first is right, later ones left.
+
+## Design summary
+
+- Dark interface (`#111418`), white score card, controls in the middle, keyboard at the bottom.
+- Left hand `#D9730D` (orange), right hand `#1F6FEB` (blue). The pair also differs in lightness, so it stays readable for people with color vision deficiency.
+- Inter for body text, Space Grotesk for headings.
+- Responsive: usable on phones, tablets and laptops. Buttons at least 44 px high, so the app works on a tablet at the piano.
+
+## Open questions
+
+Ask the maintainer about these if they are not yet answered in `docs/decisions.md`:
+
+- How many keys does the target piano have (88, 76 or 61)?
+- Note names as do re mi (solfège) or as C D E?
+- Is it a digital piano with a USB or MIDI connection? Note that MIDI input is not possible in browsers on iPad or iPhone.
+
+## Commands
+
+Node 26 (see `.nvmrc`).
+
+- `npm run dev`: dev server. The spike page lists the test scores in a dropdown (development only).
+- `npm test`: all tests once (`npm run test:watch` to keep watching).
+- `npm run check`: typecheck, lint, format check and tests: what CI runs before a deploy.
+- `npm run build`: production build in `dist/`. Contains no scores.
+- `npm run format`: format all files with Prettier.
+
+Every push to `main` is checked and deployed to GitHub Pages by `.github/workflows/deploy.yml`.
