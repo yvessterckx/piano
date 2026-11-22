@@ -5,6 +5,7 @@ import type { PianoSound } from '../playback/PianoSound';
 import { Transport } from '../playback/Transport';
 import type { NotePlayer } from '../playback/Transport';
 import type { OsmdScore } from '../score/osmd/OsmdScore';
+import { looksLikeMusicXml } from '../score/scoreFile';
 import { eventsSoundingAt, measurePositionAt } from '../timeline/queries';
 import type { Hand, MeasureOccurrence, Timeline } from '../timeline/types';
 import { fetchDevFixture, listDevFixtures } from './devFixtures';
@@ -17,16 +18,6 @@ type HandChoice = Hand | 'both';
 const OTHER_HAND_LEVEL = 0.35;
 const DEFAULT_TEMPO_PERCENT = 60;
 const DEFAULT_LOOP_MEASURES = 4;
-
-const ACCEPTED_FILES = [
-  '.musicxml',
-  '.xml',
-  '.mxl',
-  'application/vnd.recordare.musicxml+xml',
-  'application/vnd.recordare.musicxml',
-  'application/xml',
-  'text/xml',
-].join(',');
 
 const SILENT_PLAYER: NotePlayer = {
   play() {
@@ -47,7 +38,7 @@ const TEMPLATE = `
       <select class="field" data-ref="fixtures" aria-label="Test score (development only)" hidden></select>
       <label class="button">
         ${ICON_OPEN}Open file
-        <input type="file" class="visually-hidden" data-ref="file" accept="${ACCEPTED_FILES}" />
+        <input type="file" class="visually-hidden" data-ref="file" />
       </label>
     </div>
   </header>
@@ -170,6 +161,14 @@ export function mountPracticePage(root: HTMLElement): void {
 
   async function open(source: Blob, name: string): Promise<void> {
     const request = ++openRequest;
+    // The file input has no accept filter: on phones it would hide .mxl and .musicxml files (see
+    // looksLikeMusicXml). Another kind of file is turned down here, keeping the open piece.
+    const isMusicXml = await looksLikeMusicXml(source);
+    if (request !== openRequest) return;
+    if (!isMusicXml) {
+      showStatus(`${name} is not a MusicXML file. Choose a .musicxml, .xml or .mxl file.`, 'error');
+      return;
+    }
     closePiece();
     showStatus(`Opening ${name}…`);
     let timeline: Timeline;

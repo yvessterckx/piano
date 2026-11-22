@@ -46,7 +46,7 @@ Done on 2026-11-22, tested on a laptop in Chrome. See `docs/decisions.md` ("Play
 - Keep sounding notes when the tempo changes during playback (now every change restarts the scheduling and cuts them).
 - Tablet layout (used at the piano), buttons at least 44 px high.
 - Settings: number of keys, note names (do re mi or C D E). Persisted in `localStorage` (reads and writes wrapped in try/catch).
-- Loading state for samples and score, clear error messages for an unreadable file.
+- Loading state for samples and score, clear error messages for an unreadable file. A file that is not MusicXML at all is already turned down with a message.
 - Self-host the samples for offline use, possibly as a PWA.
 
 ## Phase 4: extras (each a separate decision)

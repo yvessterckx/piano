@@ -4,6 +4,14 @@ Update this file whenever a decision is made. Newest first within each section.
 
 ## Decisions
 
+### 2026-11-22: No file type filter on "Open file"
+
+The file input has no `accept` attribute. On iOS, Safari turns the accepted extensions into system file types and silently drops the ones the system does not know, which includes `.mxl` and `.musicxml`; vendor MIME types such as `application/vnd.recordare.musicxml` fare no better. Checked in WebKit's source (`WKFileUploadPanel`) and in the iOS Simulator: with the filter, only `.xml` files could be picked. Android was not checked.
+
+Instead, the app checks the picked file (`score/scoreFile.ts`) by its first bytes only: a zip archive (compressed MusicXML) or XML text in UTF-8. Any other file is turned down with a message, without reading the rest of it and without closing the open piece. Whether the file holds a score is decided when OSMD loads it.
+
+The cost: the picker lists all files, also on a laptop, and iOS first offers a menu (Photo Library, Take Photo or Video, Choose File).
+
 ### 2026-11-22: Playback
 
 - **Own lookahead scheduler, no Tone.js.** `playback/Transport` hands notes to the audio engine 150 ms ahead on the `AudioContext` clock and computes the position from that clock. It is small, fully unit-tested without audio, and saves a dependency. Changing the tempo, the loop or the position while playing restarts the scheduling from the current position, which also cuts notes that are sounding.
