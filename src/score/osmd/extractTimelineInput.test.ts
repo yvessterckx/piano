@@ -80,6 +80,14 @@ describe('handmade scores (exact results)', () => {
     expect(timeline.durationBeats).toBe(12);
   });
 
+  it('jumps back to the segno and on to the coda', async () => {
+    const timeline = await timelineOf('handmade-dal-segno-al-coda.musicxml');
+
+    expect(labels(timeline)).toEqual(['1', '2', '3', '4', '5', '2', '3', '6']);
+    expect(timeline.events.map((e) => e.midi)).toEqual([60, 62, 64, 65, 67, 62, 64, 72]);
+    expect(timeline.durationBeats).toBe(16);
+  });
+
   it('handles a pickup measure and one part per hand', async () => {
     const timeline = await timelineOf('handmade-pickup-two-parts.musicxml');
 
@@ -170,6 +178,8 @@ describe('public-domain scores', () => {
   });
 });
 
+const STEP_PITCH_CLASS = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 } as const;
+
 /** Invariants every timeline of a piano score must satisfy. */
 function expectWellFormed(timeline: Timeline): void {
   timeline.measures.forEach((measure, index) => {
@@ -188,6 +198,8 @@ function expectWellFormed(timeline: Timeline): void {
       timeline.durationBeats + 1e-6,
     );
     expect(event.noteRefs.length).toBeGreaterThan(0);
+    const writtenPitchClass = STEP_PITCH_CLASS[event.spelling.step] + event.spelling.alter;
+    expect((((writtenPitchClass - event.midi) % 12) + 12) % 12).toBe(0);
     const previous = timeline.events[index - 1];
     if (previous) expect(event.startBeat).toBeGreaterThanOrEqual(previous.startBeat);
   }

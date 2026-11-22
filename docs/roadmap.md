@@ -26,6 +26,8 @@ Done on 2026-11-22: OSMD. See `docs/decisions.md`.
 
 ## Phase 2: MVP
 
+Done on 2026-11-22, tested on a laptop in Chrome. See `docs/decisions.md` ("Playback").
+
 - Open a file (`.musicxml`, `.xml`, `.mxl`).
 - Load OSMD lazily (dynamic import): it is most of the 1.5 MB bundle.
 - Test score with a D.S. al Coda jump.
@@ -38,6 +40,10 @@ Done on 2026-11-22: OSMD. See `docs/decisions.md`.
 
 ## Phase 3: polish
 
+- Test on phones and tablets (iPad, iPhone, Android), including sound with the silent switch on.
+- Self-host the fonts (Inter, Space Grotesk) instead of falling back to system fonts.
+- Color the sounding notes in the score per hand (the design shows this; the timeline already carries the note references).
+- Keep sounding notes when the tempo changes during playback (now every change restarts the scheduling and cuts them).
 - Tablet layout (used at the piano), buttons at least 44 px high.
 - Settings: number of keys, note names (do re mi or C D E). Persisted in `localStorage` (reads and writes wrapped in try/catch).
 - Loading state for samples and score, clear error messages for an unreadable file.

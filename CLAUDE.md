@@ -5,7 +5,7 @@ A web app for practicing piano. The learner sees the score, hears the music and 
 ## Current status
 
 - **Design:** static design of the practice screen in Claude Design: https://claude.ai/artifact/BfKAXAFRrr8adkSGfTrFhA. Local copy and notes in `design/`.
-- **Code:** phases 0 and 1 of `docs/roadmap.md` are done: project setup, and a spike page that renders a score with OSMD, derives its timeline and places the cursor on any beat. Phase 2 (playback, keyboard) is next.
+- **Code:** phases 0 to 2 of `docs/roadmap.md` are done: the practice screen plays a loaded score with a piano sound, with the cursor and the keyboard in sync, tempo, hand selection, a loop and starting from a clicked measure. Phase 3 (polish) is next.
 - **Research:** `docs/research/`. Read it before choosing a library or making an architectural decision.
 - **Decisions and open questions:** `docs/decisions.md`. Update this file whenever a decision is made.
 
@@ -43,7 +43,7 @@ Later (not in the MVP): MIDI input from a digital piano with a wait mode, loadin
 
 - Vite + TypeScript, fully client-side, no backend. Versions and why: `docs/decisions.md` ("Toolchain versions").
 - Notation: OpenSheetMusicDisplay (OSMD) 3, decided in the phase 1 spike (see `docs/decisions.md`). Playback is our own.
-- Sound (phase 2, to verify): `smplr` (SplendidGrandPiano). See `docs/research/02-audio.md`.
+- Sound: `smplr` 1 (SplendidGrandPiano), samples from smplr's hosted set until they are self-hosted (phase 3). See `docs/research/02-audio.md` and `docs/decisions.md`.
 - Keyboard: custom component, 88, 76 or 61 keys.
 - Tests: Vitest. Pure logic runs in Node; tests that load a score with OSMD run in jsdom (`// @vitest-environment jsdom`). jsdom cannot measure text, so OSMD cannot render there: check layout code (e.g. the cursor) in a browser.
 - Linting and formatting: ESLint (typescript-eslint, strict type-checked) and Prettier.
@@ -56,9 +56,9 @@ Keep these layers separate (all under `src/`), so the renderer stays replaceable
 
 - `score/`: loading and rendering the file. `score/osmd/` is the only code that knows OSMD: `OsmdScore` loads and renders, `extractTimelineInput` walks OSMD's iterator (which unrolls repeats, endings and D.C./D.S.) and reports every written note per pass as a `NoteOccurrence`, `readScoreLayout` reads the cursor columns after each render. The cursor band (`ScoreCursor`) is our own element, not OSMD's cursor.
 - `timeline/`: pure data, no DOM, no audio, no OSMD. `buildTimeline` turns note occurrences into a `Timeline`: events `{ startBeat, durationBeats, midi, hand, staff, measure, noteRefs }` sorted by beat, plus measures in playback order and tempo changes. Ties are merged here, per pass. A beat is one quarter note, counted from the start of the unrolled piece.
-- `playback/`: transport (play, pause, seek, tempo, loop). Schedules notes on the `AudioContext` clock and reports which notes are active. Empty until phase 2.
-- `keyboard/`: draws the keyboard and shows the active notes. Knows nothing about scores. Empty until phase 2.
-- `ui/`: controls and settings. Currently the phase 1 spike page.
+- `playback/`: `Transport` (play, pause, seek, tempo, loop) schedules the timeline's notes a short time ahead on the audio clock and gives the position at any audio time; `tempoMap` converts beats and seconds; `PianoSound` is the smplr adapter (one piano per hand, shared samples). The transport only knows the `AudioClock` and `NotePlayer` interfaces, so it is tested without audio.
+- `keyboard/`: `Keyboard` draws the keys and lights the ones it is given, colored by hand and named as written (do re mi or C D E). Knows nothing about scores.
+- `ui/`: the practice screen (`practicePage`), device preferences, icons. It wires the layers: cursor and keyboard are drawn from the transport's position on every animation frame. OSMD and smplr are loaded on demand.
 
 Outside `src/`: `tests/fixtures/` (test scores, see its README), `tests/helpers/`, `tools/` (the dev-only Vite plugin that serves the test scores).
 
@@ -77,8 +77,6 @@ Hand assignment: MusicXML does not say which hand plays a staff, so this is an a
 
 Ask the maintainer about these if they are not yet answered in `docs/decisions.md`:
 
-- How many keys does the target piano have (88, 76 or 61)?
-- Note names as do re mi (solfège) or as C D E?
 - Is it a digital piano with a USB or MIDI connection? Note that MIDI input is not possible in browsers on iPad or iPhone.
 
 ## Commands

@@ -8,8 +8,11 @@ export default defineConfig({
   plugins: [devFixtures(fileURLToPath(new URL('./tests/fixtures', import.meta.url)))],
   build: {
     sourcemap: true,
+    // OSMD is a single 1.5 MB module. It is loaded on demand in its own chunk (see ui/practicePage.ts)
+    // and cannot be split further, so the default 500 kB warning would only repeat that.
+    chunkSizeWarningLimit: 1600,
   },
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
   },
 });

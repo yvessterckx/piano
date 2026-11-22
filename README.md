@@ -2,7 +2,7 @@
 
 A web app for practicing piano: the score, the sound and a keyboard that highlights the keys to press, all in sync. It runs entirely in the browser: a score is opened from the device and never leaves it.
 
-**Status:** proof of concept. The notation spike is done (render a MusicXML score, derive its timeline, place the cursor on any beat); playback and the keyboard are next. See [`docs/roadmap.md`](docs/roadmap.md).
+**Status:** proof of concept. Open a MusicXML file and practice with it: playback with a piano sound, tempo from 25% to 100%, one hand or both, a loop over measures, and start from any measure by clicking it. See [`docs/roadmap.md`](docs/roadmap.md).
 
 Live: https://yvessterckx.github.io/piano/
 

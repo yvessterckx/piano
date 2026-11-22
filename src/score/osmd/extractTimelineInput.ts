@@ -1,10 +1,12 @@
-import { MusicPartManagerIterator, TieTypes } from 'opensheetmusicdisplay';
-import type { Fraction, MusicSheet, Note, PlacementEnum } from 'opensheetmusicdisplay';
+import { MusicPartManagerIterator, NoteEnum, TieTypes } from 'opensheetmusicdisplay';
+import type { Fraction, MusicSheet, Note, PlacementEnum, Pitch } from 'opensheetmusicdisplay';
 import { BEAT_EPSILON } from '../../timeline/buildTimeline';
 import type {
   MeasureOccurrence,
   NoteOccurrence,
   NoteRef,
+  NoteSpelling,
+  NoteStep,
   StaffInfo,
   StaffRef,
   TempoChange,
@@ -105,6 +107,7 @@ export function extractTimelineInput(sheet: MusicSheet): ExtractedScore {
           startBeat: beat,
           durationBeats: toBeats(note.Length),
           midi: note.Pitch.getHalfTone() + OSMD_HALF_TONE_TO_MIDI,
+          spelling: spellingOf(note.Pitch),
           staff,
           measure: openMeasure.index,
           ...tieFlags(note),
@@ -119,6 +122,21 @@ export function extractTimelineInput(sheet: MusicSheet): ExtractedScore {
   closeMeasure(lastMeasureEnd(sheet, openMeasure, notes));
 
   return { input: { notes, measures, staves, tempo }, notesByRef };
+}
+
+const STEPS: Record<NoteEnum, NoteStep> = {
+  [NoteEnum.C]: 'C',
+  [NoteEnum.D]: 'D',
+  [NoteEnum.E]: 'E',
+  [NoteEnum.F]: 'F',
+  [NoteEnum.G]: 'G',
+  [NoteEnum.A]: 'A',
+  [NoteEnum.B]: 'B',
+};
+
+/** The written letter and accidental. Microtonal accidentals are rounded to whole semitones. */
+function spellingOf(pitch: Pitch): NoteSpelling {
+  return { step: STEPS[pitch.FundamentalNote], alter: Math.round(pitch.AccidentalHalfTones) };
 }
 
 function toBeats(fraction: Fraction): number {

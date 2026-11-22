@@ -20,6 +20,14 @@ export interface StaffInfo extends StaffRef {
   readonly stavesInPart: number;
 }
 
+export type NoteStep = 'C' | 'D' | 'E' | 'F' | 'G' | 'A' | 'B';
+
+/** How a note is written: its letter and its accidental in semitones (-1 flat, 1 sharp, 0 none). */
+export interface NoteSpelling {
+  readonly step: NoteStep;
+  readonly alter: number;
+}
+
 /**
  * Opaque reference to a written note in the rendered score, issued by the score adapter.
  * The timeline only carries it, so the score can highlight the note later.
@@ -49,6 +57,7 @@ export interface NoteOccurrence {
   readonly startBeat: number;
   readonly durationBeats: number;
   readonly midi: number;
+  readonly spelling: NoteSpelling;
   readonly staff: StaffRef;
   /** Index of the MeasureOccurrence the note starts in. */
   readonly measure: number;
@@ -78,6 +87,8 @@ export interface TimelineEvent {
   readonly startBeat: number;
   readonly durationBeats: number;
   readonly midi: number;
+  /** Spelling of the struck note, e.g. B flat rather than A sharp. */
+  readonly spelling: NoteSpelling;
   readonly hand: Hand;
   readonly staff: StaffRef;
   /** Index of the MeasureOccurrence the note starts in. */

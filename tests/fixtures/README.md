@@ -2,7 +2,7 @@
 
 Every file here is either a public-domain work or was created for this project. Files are kept byte for byte as obtained (Prettier ignores them). They are used by the tests and, during development only, by the dev server (`npm run dev`). They are never part of the production build.
 
-Rule for new files: record the work, the composer's dates, where the file comes from and under which terms, and check the file itself (`<rights>`, `<source>`, credits). A modern edition or arrangement of an old work can be protected even when the composition is not.
+Rule for new files (`tests/fixtures.test.ts` enforces the first part: an undocumented score fails the tests): record the work, the composer's dates, where the file comes from and under which terms, and check the file itself (`<rights>`, `<source>`, credits). A modern edition or arrangement of an old work can be protected even when the composition is not.
 
 ## Public-domain works
 
@@ -19,12 +19,13 @@ The four files below come from the test data of the OpenSheetMusicDisplay reposi
 
 Small scores written by hand to test one behavior each with exactly known results. Released under CC0 1.0.
 
-| File                                 | Tests                                                                                                                                                                         |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `handmade-tied-chords.musicxml`      | Ties across a beat and across a barline, chords in both hands, a chord with one tied and one newly struck note, a note struck again where a tied note of the same pitch ends. |
-| `handmade-repeat-voltas.musicxml`    | Forward and backward repeat, first and second ending, a note tied into both endings.                                                                                          |
-| `handmade-pickup-two-parts.musicxml` | Pickup measure (measure 0), one single-staff part per hand, a tempo marking.                                                                                                  |
-| `handmade-da-capo-al-fine.musicxml`  | D.C. al Fine: back to the start after the last measure, stop at Fine.                                                                                                         |
+| File                                  | Tests                                                                                                                                                                         |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `handmade-tied-chords.musicxml`       | Ties across a beat and across a barline, chords in both hands, a chord with one tied and one newly struck note, a note struck again where a tied note of the same pitch ends. |
+| `handmade-repeat-voltas.musicxml`     | Forward and backward repeat, first and second ending, a note tied into both endings.                                                                                          |
+| `handmade-pickup-two-parts.musicxml`  | Pickup measure (measure 0), one single-staff part per hand, a tempo marking.                                                                                                  |
+| `handmade-da-capo-al-fine.musicxml`   | D.C. al Fine: back to the start after the last measure, stop at Fine.                                                                                                         |
+| `handmade-dal-segno-al-coda.musicxml` | D.S. al Coda: back to the segno, then from To Coda to the coda.                                                                                                               |
 
 ## What each real score covers
 

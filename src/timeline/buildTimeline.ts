@@ -2,6 +2,7 @@ import { handForStaff } from './hands';
 import type {
   Hand,
   NoteRef,
+  NoteSpelling,
   StaffInfo,
   StaffRef,
   Timeline,
@@ -19,6 +20,7 @@ interface EventDraft {
   readonly startBeat: number;
   endBeat: number;
   readonly midi: number;
+  readonly spelling: NoteSpelling;
   readonly hand: Hand;
   readonly staff: StaffRef;
   readonly measure: number;
@@ -55,6 +57,7 @@ export function buildTimeline(input: TimelineInput): Timeline {
       startBeat: note.startBeat,
       endBeat: note.startBeat + note.durationBeats,
       midi: note.midi,
+      spelling: note.spelling,
       hand: hands.get(staffKey(note.staff)) ?? 'right',
       staff: note.staff,
       measure: note.measure,

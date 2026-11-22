@@ -4,6 +4,20 @@ Update this file whenever a decision is made. Newest first within each section.
 
 ## Decisions
 
+### 2026-11-22: Playback
+
+- **Own lookahead scheduler, no Tone.js.** `playback/Transport` hands notes to the audio engine 150 ms ahead on the `AudioContext` clock and computes the position from that clock. It is small, fully unit-tested without audio, and saves a dependency. Changing the tempo, the loop or the position while playing restarts the scheduling from the current position, which also cuts notes that are sounding.
+- **smplr, one SplendidGrandPiano per hand** with a shared `SampleLoader`: each hand has its own volume, the samples are loaded once. Only the notes of the piece are loaded, at one velocity layer.
+- **Samples from smplr's hosted set** (`smpldsnds.github.io`, a request to a third party) until they are self-hosted in phase 3. Cached with the Cache API where available. Without the samples, the app keeps working without sound.
+- **Hand selection:** the practiced hand plays at full volume and is shown on the keyboard; the other hand plays at 35% volume, or not at all with "Mute the other hand".
+- **Starting from a clicked measure** starts at its first occurrence in playback order. Moving outside an active loop ends the loop.
+- **The cursor and keyboard follow the sound:** both are drawn from the position at the audio time that is being heard (current time minus output latency).
+- **OSMD and smplr are loaded on demand:** the page itself is 20 kB of JavaScript.
+
+### 2026-11-22: 88 keys, note names do re mi by default
+
+The target piano has 88 keys (A0 to C8). Note names on the keyboard are do re mi (fixed do, as taught in Belgium: do re mi fa sol la si) by default, with a switch to C D E. The choice is remembered on the device.
+
 ### 2026-11-22: OpenSheetMusicDisplay for notation (result of the phase 1 spike)
 
 We use OSMD, not Verovio. With OSMD 3.0.0 the spike met all four success criteria of `research/01-notation-and-rendering.md`, on four public-domain pieces and four scores written for the tests (`tests/fixtures/`):
@@ -82,8 +96,8 @@ Earlier notes named Musicnotes and MuseScore as sources for MusicXML of copyrigh
 
 | Question                                         | Why it matters                                             | Answer                                                              |
 | ------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------- |
-| Number of keys on the target piano (88, 76, 61)? | Keyboard range                                             |                                                                     |
-| Do re mi or C D E?                               | Note names on the keys                                     |                                                                     |
+| Number of keys on the target piano (88, 76, 61)? | Keyboard range                                             | 88 (2026-11-22)                                                     |
+| Do re mi or C D E?                               | Note names on the keys                                     | Do re mi by default, switchable to C D E (2026-11-22)               |
 | Which device is used for practice?               | Screen size; MIDI input is not possible on iPad            | Responsive, usable on mobile; tested on a laptop first (2026-11-22) |
 | Digital piano with USB/MIDI?                     | Wait mode and per-note feedback                            |                                                                     |
 | OSMD or Verovio?                                 | Core of the app                                            | OSMD (2026-11-22, see decisions above)                              |

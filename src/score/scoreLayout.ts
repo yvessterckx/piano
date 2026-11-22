@@ -7,10 +7,13 @@ export interface CursorColumn {
   readonly x: number;
 }
 
-/** Where the cursor can stand in one measure, in score units (renderer coordinates). */
+/** Where a measure is drawn and where the cursor can stand in it, in score units. */
 export interface MeasureLayout {
   /** Sorted by beat; at least one column. */
   readonly columns: readonly CursorColumn[];
+  /** Left and right edge of the measure. */
+  readonly left: number;
+  readonly right: number;
   /** Top of the first staff of the system the measure is drawn in. */
   readonly top: number;
   /** Bottom of the last staff of that system. */
@@ -25,6 +28,9 @@ export interface CursorBox {
   readonly top: number;
   readonly bottom: number;
 }
+
+/** How far above and below its staves a click still selects a measure, in score units. */
+const CLICK_TOLERANCE_UNITS = 4;
 
 /**
  * The cursor position for a beat within a measure of the score: the last column at or before
@@ -51,4 +57,17 @@ export function cursorBoxAt(
 
   const column = measure.columns[low] ?? first;
   return { x: column.x, top: measure.top, bottom: measure.bottom };
+}
+
+/** The source index of the measure drawn at a point (score units), if any. */
+export function measureAtPoint(layout: ScoreLayout, x: number, y: number): number | undefined {
+  const index = layout.findIndex(
+    (measure) =>
+      measure !== undefined &&
+      x >= measure.left &&
+      x <= measure.right &&
+      y >= measure.top - CLICK_TOLERANCE_UNITS &&
+      y <= measure.bottom + CLICK_TOLERANCE_UNITS,
+  );
+  return index === -1 ? undefined : index;
 }

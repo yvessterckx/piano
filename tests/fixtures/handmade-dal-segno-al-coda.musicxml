@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>Test: dal segno al coda</work-title></work>
+  <identification>
+    <creator type="composer">Piano practice tool test suite</creator>
+    <rights>CC0 1.0. Created for this project.</rights>
+    <encoding><software>Written by hand</software></encoding>
+  </identification>
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <!-- Playback order: 1 2 3 4 5, back to the segno: 2 3, then to the coda: 6. -->
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>2</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <duration>2</duration><voice>1</voice><type>half</type>
+      </note>
+    </measure>
+    <measure number="2">
+      <direction placement="above">
+        <direction-type><segno/></direction-type>
+        <sound segno="segno"/>
+      </direction>
+      <note>
+        <pitch><step>D</step><octave>4</octave></pitch>
+        <duration>2</duration><voice>1</voice><type>half</type>
+      </note>
+    </measure>
+    <measure number="3">
+      <note>
+        <pitch><step>E</step><octave>4</octave></pitch>
+        <duration>2</duration><voice>1</voice><type>half</type>
+      </note>
+      <direction placement="above">
+        <direction-type><words>To Coda</words></direction-type>
+        <sound tocoda="coda"/>
+      </direction>
+    </measure>
+    <measure number="4">
+      <note>
+        <pitch><step>F</step><octave>4</octave></pitch>
+        <duration>2</duration><voice>1</voice><type>half</type>
+      </note>
+    </measure>
+    <measure number="5">
+      <note>
+        <pitch><step>G</step><octave>4</octave></pitch>
+        <duration>2</duration><voice>1</voice><type>half</type>
+      </note>
+      <direction placement="above">
+        <direction-type><words>D.S. al Coda</words></direction-type>
+        <sound dalsegno="segno"/>
+      </direction>
+      <barline location="right"><bar-style>light-light</bar-style></barline>
+    </measure>
+    <measure number="6">
+      <direction placement="above">
+        <direction-type><coda/></direction-type>
+        <sound coda="coda"/>
+      </direction>
+      <note>
+        <pitch><step>C</step><octave>5</octave></pitch>
+        <duration>2</duration><voice>1</voice><type>half</type>
+      </note>
+      <barline location="right"><bar-style>light-heavy</bar-style></barline>
+    </measure>
+  </part>
+</score-partwise>

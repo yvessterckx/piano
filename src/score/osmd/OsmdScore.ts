@@ -1,9 +1,9 @@
 import { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 import { buildTimeline } from '../../timeline/buildTimeline';
 import type { Timeline } from '../../timeline/types';
-import { cursorBoxAt } from '../cursorLayout';
-import type { ScoreLayout } from '../cursorLayout';
 import { ScoreCursor } from '../ScoreCursor';
+import { cursorBoxAt, measureAtPoint } from '../scoreLayout';
+import type { ScoreLayout } from '../scoreLayout';
 import { extractTimelineInput } from './extractTimelineInput';
 import { readScoreLayout } from './readScoreLayout';
 
@@ -20,7 +20,8 @@ interface CursorTarget {
 
 /**
  * The score adapter around OpenSheetMusicDisplay: loads and renders a MusicXML file, produces its
- * timeline and places the cursor. Nothing outside score/ knows about OSMD.
+ * timeline, places the cursor and reports clicks on measures. Nothing outside score/ knows about
+ * OSMD.
  */
 export class OsmdScore {
   readonly #container: HTMLElement;
@@ -28,6 +29,7 @@ export class OsmdScore {
   readonly #cursor: ScoreCursor;
   #layout: ScoreLayout = [];
   #cursorTarget: CursorTarget | undefined;
+  #measureClickListener: ((sourceIndex: number) => void) | undefined;
 
   constructor(container: HTMLElement) {
     this.#container = container;
@@ -37,12 +39,19 @@ export class OsmdScore {
       autoResize: true,
       disableCursor: true,
       drawPartNames: false,
+      drawTitle: false,
+      drawSubtitle: false,
+      drawComposer: false,
+      drawLyricist: false,
       pageFormat: 'Endless',
       // Also runs after the re-renders OSMD starts itself when the container's width changes.
       onRender: () => {
         this.#layout = readScoreLayout(this.#osmd.GraphicSheet);
         this.#placeCursor();
       },
+    });
+    container.addEventListener('click', (event) => {
+      this.#handleClick(event);
     });
   }
 
@@ -73,16 +82,21 @@ export class OsmdScore {
     this.#placeCursor();
   }
 
+  /** Calls the listener with the source index of a measure the user clicks or taps. */
+  onMeasureClick(listener: (sourceIndex: number) => void): void {
+    this.#measureClickListener = listener;
+  }
+
   #placeCursor(): void {
     const target = this.#cursorTarget;
     const box = target && cursorBoxAt(this.#layout, target.sourceIndex, target.beatInMeasure);
-    const page = this.#osmd.Drawer.Backends[0]?.getInnerElement();
+    const page = this.#page();
     if (!box || !page) {
       this.#cursor.hide();
       return;
     }
 
-    const unit = PIXELS_PER_UNIT * this.#osmd.Zoom;
+    const unit = this.#unit();
     const { left: pageLeft, top: pageTop } = this.#offsetInContainer(page);
     this.#cursor.place({
       left: pageLeft + (box.x - CURSOR_WIDTH_UNITS / 2) * unit,
@@ -90,6 +104,28 @@ export class OsmdScore {
       width: CURSOR_WIDTH_UNITS * unit,
       height: (box.bottom - box.top + 2 * CURSOR_OVERHANG_UNITS) * unit,
     });
+  }
+
+  #handleClick(event: MouseEvent): void {
+    const page = this.#page();
+    if (!page || !this.#measureClickListener) return;
+    const bounds = page.getBoundingClientRect();
+    const unit = this.#unit();
+    const sourceIndex = measureAtPoint(
+      this.#layout,
+      (event.clientX - bounds.left) / unit,
+      (event.clientY - bounds.top) / unit,
+    );
+    if (sourceIndex !== undefined) this.#measureClickListener(sourceIndex);
+  }
+
+  /** The element OSMD draws the (single, endless) page into. */
+  #page(): HTMLElement | undefined {
+    return this.#osmd.Drawer.Backends[0]?.getInnerElement();
+  }
+
+  #unit(): number {
+    return PIXELS_PER_UNIT * this.#osmd.Zoom;
   }
 
   /** Position of an element inside the (scrollable, positioned) container, in CSS pixels. */

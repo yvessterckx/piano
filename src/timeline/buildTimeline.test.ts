@@ -14,6 +14,7 @@ function note(
   fields: Pick<NoteOccurrence, 'startBeat' | 'durationBeats' | 'midi'> & Partial<NoteOccurrence>,
 ): NoteOccurrence {
   return {
+    spelling: { step: 'C', alter: 0 },
     staff: RIGHT,
     measure: 0,
     tieStart: false,
