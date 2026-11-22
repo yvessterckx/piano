@@ -4,6 +4,14 @@ Update this file whenever a decision is made. Newest first within each section.
 
 ## Decisions
 
+### 2026-11-22: Keys struck now and keys held on
+
+A long written note does not say whether the finger holds the key or the sustain pedal holds the sound; piano arrangements often write long tied notes that no hand can hold together (e.g. octaves in both hands plus a held bass), relying on the pedal. Lighting every written note as a held key then suggests pressing them all at once.
+
+- The keyboard lights the keys struck at this moment in full, and the keys struck earlier and still written as held in a lighter shade of the hand color (also in the row of names above the keys on a phone). "This moment" is the latest onset at or before the position among the notes of the practiced hand(s) (`heldKeysAt` in `timeline/queries.ts`).
+- At the hit line of the falling notes, only the keys struck now glow; the bars already show how long each note lasts.
+- MusicXML does not say which notes the fingers hold, so the app does not guess: a lighter key means "struck earlier, held on (by finger or pedal)".
+
 ### 2026-11-22: Falling notes and the sustain pedal
 
 Based on `research/06-falling-notes-view.md` and its design example. Built as designed there, with one switch to turn the feature off.

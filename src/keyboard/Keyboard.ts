@@ -10,6 +10,11 @@ export interface ActiveKey {
   readonly midi: number;
   readonly hand: Hand;
   readonly spelling: NoteSpelling;
+  /**
+   * Struck at this moment (lit in full), or struck earlier and held on (lit lighter), so the
+   * learner sees what to play now apart from what keeps sounding.
+   */
+  readonly struck: boolean;
 }
 
 interface KeyElements {
@@ -22,7 +27,8 @@ const MIDDLE_C = 60;
 
 /**
  * The on-screen keyboard, fitted to the width of its container (no scrolling, so the keys never
- * move). Knows nothing about scores: it shows the keys it is given, colored by hand. Each lit key
+ * move). Knows nothing about scores: it shows the keys it is given, colored by hand, in full when
+ * they are struck now and lighter when they are held on from earlier. Each lit key
  * carries its note name, and every C its name for orientation; when the keys are too narrow for
  * that (a phone), the names of the lit keys appear in a row above them instead. Middle C is
  * marked either way.
@@ -114,11 +120,10 @@ export class Keyboard {
     const next = new Map(active.map((key) => [key.midi, key]));
     const changed = new Set<number>();
     for (const [midi, key] of this.#active) {
-      if (next.get(midi)?.hand !== key.hand) changed.add(midi);
+      if (!sameKey(next.get(midi), key)) changed.add(midi);
     }
     for (const [midi, key] of next) {
-      const previous = this.#active.get(midi);
-      if (previous?.hand !== key.hand || previous.spelling !== key.spelling) changed.add(midi);
+      if (!sameKey(this.#active.get(midi), key)) changed.add(midi);
     }
     this.#active = next;
     for (const midi of changed) this.#renderKey(midi);
@@ -156,6 +161,7 @@ export class Keyboard {
     const active = this.#active.get(midi);
     elements.key.classList.toggle('key-left', active?.hand === 'left');
     elements.key.classList.toggle('key-right', active?.hand === 'right');
+    elements.key.classList.toggle('key-held-on', active?.struck === false);
     elements.label.textContent = this.#compact
       ? ''
       : active
@@ -172,9 +178,10 @@ export class Keyboard {
       return;
     }
     const active = [...this.#active.values()].sort((a, b) => a.midi - b.midi);
-    const labels = active.map(({ hand, spelling }) => {
+    const labels = active.map(({ hand, spelling, struck }) => {
       const label = document.createElement('span');
       label.className = `keyboard-name keyboard-name-${hand}`;
+      if (!struck) label.classList.add('keyboard-name-held-on');
       label.textContent = spelledName(spelling, this.#naming);
       return label;
     });
@@ -189,4 +196,8 @@ export class Keyboard {
     const lefts = spreadLabels(spans, this.#names.clientWidth, NAME_GAP_PX);
     labels.forEach((label, i) => (label.style.left = `${lefts[i] ?? 0}px`));
   }
+}
+
+function sameKey(a: ActiveKey | undefined, b: ActiveKey | undefined): boolean {
+  return a?.hand === b?.hand && a?.spelling === b?.spelling && a?.struck === b?.struck;
 }

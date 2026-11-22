@@ -90,6 +90,15 @@ describe('rollScene', () => {
     expect(scene.glows).toEqual([{ left: lane(60)?.left, width: lane(60)?.width, hand: 'right' }]);
   });
 
+  it('lights only the keys struck at this moment, not the ones held on from earlier', () => {
+    const scene = rollScene(
+      piece([event(0, 4, 48, 'left'), event(1, 1, 60)]),
+      view({ position: 1.5 }),
+    );
+
+    expect(scene.glows.map((glow) => glow.hand)).toEqual(['right']);
+  });
+
   it('draws a thin tail while the pedal holds the sound, and none without the pedal', () => {
     const notes = [event(0, 1, 60, 'right', 3)];
     const withPedal = rollScene(piece(notes), view());

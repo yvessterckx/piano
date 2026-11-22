@@ -10,7 +10,7 @@ import type { HandDisplay } from '../roll/rollScene';
 import type { OsmdScore, ScoreLayoutMode } from '../score/osmd/OsmdScore';
 import { looksLikeMusicXml } from '../score/scoreFile';
 import {
-  eventsSoundingAt,
+  heldKeysAt,
   measurePositionAt,
   measuresInSpan,
   pedalDownAt,
@@ -364,9 +364,9 @@ export function mountPracticePage(root: HTMLElement): void {
     if (!draggingProgress) ui.progress.value = String(beat);
     ui.measure.textContent = measureDisplay(timeline, position.measure, layout);
     keyboard.show(
-      eventsSoundingAt(timeline, beat)
-        .filter((event) => handChoice === 'both' || event.hand === handChoice)
-        .map(({ midi, hand, spelling }) => ({ midi, hand, spelling })),
+      heldKeysAt(timeline, beat, (event) => handChoice === 'both' || event.hand === handChoice).map(
+        ({ event: { midi, hand, spelling }, struck }) => ({ midi, hand, spelling, struck }),
+      ),
     );
     if (piece) {
       const bpm = piece.transport.writtenBpmAt(beat) * piece.transport.tempoFactor;

@@ -50,6 +50,44 @@ export function eventsSoundingAt(timeline: Timeline, beat: number): TimelineEven
   return found;
 }
 
+/** A key held at a beat. */
+export interface HeldKey {
+  readonly event: TimelineEvent;
+  /**
+   * Struck at the latest onset up to the beat: what to play at this moment. Otherwise the key was
+   * struck earlier and is still down, or still sounding where the pedal lets the finger go: a long
+   * written note does not say which.
+   */
+  readonly struck: boolean;
+}
+
+/**
+ * The keys held at a beat, each marked as struck now or held on from an earlier onset. "Now" is
+ * the latest onset at or before the beat among the included events, also when that note has
+ * already ended (a short note of the other hand), so a held key does not flicker back to "struck".
+ */
+export function heldKeysAt(
+  timeline: Timeline,
+  beat: number,
+  include: (event: TimelineEvent) => boolean = () => true,
+): HeldKey[] {
+  const { events } = timeline;
+  let latestOnset = -Infinity;
+  for (let i = firstEventFrom(events, beat + BEAT_EPSILON) - 1; i >= 0; i--) {
+    const event = events[i];
+    if (event && include(event)) {
+      latestOnset = event.startBeat;
+      break;
+    }
+  }
+  return eventsSoundingAt(timeline, beat)
+    .filter(include)
+    .map((event) => ({
+      event,
+      struck: Math.abs(event.startBeat - latestOnset) < BEAT_EPSILON,
+    }));
+}
+
 /** A span of the piece in beats: from startBeat up to (not including) endBeat. */
 export interface BeatSpan {
   readonly startBeat: number;

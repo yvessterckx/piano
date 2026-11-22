@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   eventsSoundingAt,
   eventsSoundingIn,
+  heldKeysAt,
   measurePositionAt,
   measuresInSpan,
   pedalDownAt,
@@ -176,5 +177,46 @@ describe('pedalDownAt', () => {
       true,
       false,
     ]);
+  });
+});
+
+describe('heldKeysAt', () => {
+  // The left hand holds 48 from beat 1 to 4; the right hand strikes 72 at beat 1 (until 3).
+  const struck = (beat: number, include?: Parameters<typeof heldKeysAt>[2]) =>
+    heldKeysAt(timeline, beat, include).map(({ event, struck }) => [event.midi, struck]);
+
+  it('marks the keys struck at the latest onset as struck, all of them in a chord', () => {
+    expect(struck(1.5)).toEqual([
+      [48, true],
+      [72, true],
+    ]);
+  });
+
+  it('marks a key struck at an earlier onset as held on', () => {
+    const later: Timeline = {
+      ...timeline,
+      events: [
+        ...timeline.events,
+        { ...timeline.events[0], startBeat: 2, durationBeats: 0.5, soundingEndBeat: 2.5 },
+      ] as Timeline['events'],
+    };
+    const at = (beat: number) =>
+      heldKeysAt(later, beat).map(({ event, struck }) => [event.midi, struck]);
+
+    expect(at(2.25)).toEqual([
+      [48, false],
+      [72, false],
+      [67, true],
+    ]);
+    // The short note has ended; the others still count as held on, not as struck again.
+    expect(at(2.75)).toEqual([
+      [48, false],
+      [72, false],
+    ]);
+  });
+
+  it('takes the latest onset among the included events only (the practiced hand)', () => {
+    expect(struck(1.5, (event) => event.hand === 'left')).toEqual([[48, true]]);
+    expect(struck(3.5, (event) => event.hand === 'left')).toEqual([[48, true]]);
   });
 });

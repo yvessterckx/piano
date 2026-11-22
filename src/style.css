@@ -15,6 +15,12 @@
   /* Falling notes: notes on black keys are darker, as the keys are; the glow lights the hit line.
      The dark shades keep 3:1 contrast on the roll's background. */
   --color-left-hand-dark: #a65a0b;
+  /* Keys held on from an earlier onset: the hand color mixed 45% with a white key, 55% with a
+     black key. Lighter than a key struck now, still told apart by hand. */
+  --color-left-hand-held: #eec092;
+  --color-right-hand-held: #9abef6;
+  --color-left-hand-held-black: #804a14;
+  --color-right-hand-held-black: #1a478e;
   --color-right-hand-dark: #1a5fd6;
   --color-left-hand-glow: #f0a35e;
   --color-right-hand-glow: #7fb0ff;
@@ -709,6 +715,19 @@ body {
   color: #fff;
 }
 
+.keyboard-name-held-on {
+  font-weight: 500;
+}
+
+.keyboard-name-left.keyboard-name-held-on {
+  background: var(--color-left-hand-held);
+}
+
+.keyboard-name-right.keyboard-name-held-on {
+  background: var(--color-right-hand-held);
+  color: var(--color-ink);
+}
+
 .keyboard {
   position: relative;
   width: 100%;
@@ -771,6 +790,26 @@ body {
   background: var(--color-right-hand);
   color: #fff;
   font-weight: 700;
+}
+
+.key-white.key-left.key-held-on {
+  background: var(--color-left-hand-held);
+  font-weight: 500;
+}
+
+.key-white.key-right.key-held-on {
+  background: var(--color-right-hand-held);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.key-black.key-left.key-held-on {
+  background: var(--color-left-hand-held-black);
+  color: #fff;
+}
+
+.key-black.key-right.key-held-on {
+  background: var(--color-right-hand-held-black);
 }
 
 .key-label {

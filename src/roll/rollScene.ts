@@ -5,7 +5,7 @@ import type { NoteNaming } from '../keyboard/noteNames';
 import { createTempoMap } from '../playback/tempoMap';
 import type { TempoMap } from '../playback/tempoMap';
 import { BEAT_EPSILON } from '../timeline/beats';
-import { eventsSoundingAt, eventsSoundingIn } from '../timeline/queries';
+import { eventsSoundingIn, heldKeysAt } from '../timeline/queries';
 import type { BeatSpan } from '../timeline/queries';
 import type { Hand, Timeline } from '../timeline/types';
 
@@ -81,7 +81,7 @@ export interface RollScene {
   /** The pedal lane, and where the pedal is down in it (top and bottom in pixels). */
   readonly pedalStrip: Strip | undefined;
   readonly pedal: readonly { readonly top: number; readonly bottom: number }[];
-  /** Keys being held now, lit at the hit line. */
+  /** Keys struck at this moment, lit at the hit line (not the ones held on from earlier). */
   readonly glows: readonly { readonly left: number; readonly width: number; readonly hand: Hand }[];
 }
 
@@ -212,11 +212,10 @@ export function rollScene(piece: RollPiece, view: RollView): RollScene {
     if (scene.pedalStrip) addPedal(scene.pedal, timeline, segment, visibleUntil, y, view.height);
   }
 
-  for (const event of eventsSoundingAt(timeline, view.position)) {
+  const played = (event: { hand: Hand }): boolean => view.hands[event.hand] === 'play';
+  for (const { event, struck } of heldKeysAt(timeline, view.position, played)) {
     const lane = lanes.get(event.midi);
-    if (lane && view.hands[event.hand] === 'play') {
-      scene.glows.push({ left: lane.left, width: lane.width, hand: event.hand });
-    }
+    if (lane && struck) scene.glows.push({ left: lane.left, width: lane.width, hand: event.hand });
   }
   return scene;
 }
