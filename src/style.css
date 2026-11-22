@@ -30,6 +30,11 @@
   box-sizing: border-box;
 }
 
+html {
+  /* No double-tap zoom on phones: two quick taps (pause, play) are two taps. Pinch zoom stays. */
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
   background: var(--color-background);
